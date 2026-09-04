@@ -1,0 +1,9 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "随身眼脑助手",
+    "backgroundColor": "#000000"
+  }
+}

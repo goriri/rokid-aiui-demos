@@ -1,0 +1,9 @@
+.agent
+dist
+node_modules
+.git
+.gitignore
+.aixignore
+package-lock.json
+assets
+scripts
