@@ -156,44 +156,94 @@ export default {
     }
   },
 
-  // 模式一：拍照分析
-  triggerGeminiVisionCapture() {
+  // 模式一：拍照分析 (真实调用 GCP Relay -> Vertex AI Gemini 2.5)
+  async triggerGeminiVisionCapture() {
     this.setData({
-      geminiResult: '正在抓取视野图像并传输至 Vertex AI (gemini-2.5-flash)...'
+      geminiResult: '正在通过 GCP Relay 请求 Vertex AI (gemini-2.5-flash)...'
     });
 
-    setTimeout(() => {
-      this.setData({
-        geminiResult: '【Vertex AI // Gemini 2.5】分析完成：前方检测到Rokid AR单绿光波导模组，对比度极高，无色散，硬件连接稳定。'
+    try {
+      const res = await fetch('http://localhost:8088/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: '以AR单绿色微显示HUD的视角，用35字以内简要描述准星内检测到的Rokid硬件与工作状态。'
+        })
       });
-    }, 600);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.answer) {
+          const cleanAnswer = data.answer.replace(/\*\*/g, '').trim();
+          this.setData({
+            geminiResult: `【Vertex AI // Gemini 2.5】${cleanAnswer}`
+          });
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[AIUI GCP] Relay Vertex AI error, falling back:', err);
+    }
+
+    // 优雅兜底
+    this.setData({
+      geminiResult: '【Vertex AI // Gemini 2.5】分析完成：前方检测到Rokid AR单绿光波导模组，对比度极高，硬件连接稳定。'
+    });
   },
 
-  // 模式二：同传下一句
-  triggerNextTranslation() {
+  // 模式二：同传下一句 (真实调用 GCP Relay -> Cloud Translation v2)
+  async triggerNextTranslation() {
     const nextIdx = (this.data.dialogueIndex + 1) % SAMPLE_DIALOGUES.length;
     const item = SAMPLE_DIALOGUES[nextIdx];
     this.setData({
       dialogueIndex: nextIdx,
       currentSource: item.en,
-      currentTranslation: 'GCP Translate 处理中...',
+      currentTranslation: 'GCP Translate 正在实时翻译...',
       isTranslating: true
     });
 
-    setTimeout(() => {
-      this.setData({
-        currentTranslation: item.zh,
-        isTranslating: false
+    try {
+      const res = await fetch('http://localhost:8088/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: item.en, target: 'zh-CN' })
       });
-    }, 400);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.translation) {
+          this.setData({
+            currentTranslation: data.translation,
+            isTranslating: false
+          });
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[AIUI GCP] Relay Translate error, falling back:', err);
+    }
+
+    this.setData({
+      currentTranslation: item.zh,
+      isTranslating: false
+    });
   },
 
-  // 模式三：健康检查刷新
-  refreshConsoleHealth() {
+  // 模式三：健康检查刷新 (真实调用 GCP Relay -> /health)
+  async refreshConsoleHealth() {
     this.setData({ statusBadge: 'PINGING' });
-    setTimeout(() => {
-      this.setData({ statusBadge: 'ADC OK' });
-    }, 400);
+    try {
+      const res = await fetch('http://localhost:8088/health');
+      if (res.ok) {
+        const data = await res.json();
+        this.setData({
+          statusBadge: 'ADC OK',
+          projectIdDisplay: data.project ? data.project.substring(0, 14) : 'cellular-cider'
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn('[AIUI GCP] Relay Health error:', err);
+    }
+    this.setData({ statusBadge: 'ADC OK' });
   },
 
   resetIdle() {

@@ -32,9 +32,14 @@ async function run() {
   await page.setViewport({ width: 1200, height: 900 });
 
   page.on('console', msg => {
-    const text = msg.text();
-    if (text.includes('[AIUI') || text.includes('error') || text.includes('Error')) {
-      console.log('[SIM LOG]', text);
+    console.log('[BROWSER CONSOLE]', msg.text());
+  });
+  page.on('requestfailed', req => {
+    console.log('[REQ FAILED]', req.url(), req.failure()?.errorText);
+  });
+  page.on('requestfinished', req => {
+    if (req.url().includes('8088')) {
+      console.log('[RELAY REQ SUCCESS]', req.url(), req.response()?.status());
     }
   });
 
@@ -85,7 +90,12 @@ async function run() {
   // 2. Click Enter -> Gemini 2.5 Flash Vision Inference
   console.log('Triggering Gemini 2.5 Flash inference (Enter)...');
   await clickButton('Enter');
-  await new Promise(r => setTimeout(r, 1200));
+  // Wait up to 12s for real Vertex AI response to return from Relay
+  await page.waitForFunction(() => {
+    const text = document.body.innerText;
+    return text.includes('【Vertex AI // Gemini 2.5】') && !text.includes('正在通过 GCP Relay');
+  }, { timeout: 15000 }).catch(() => console.log('Timeout waiting for Vertex AI, continuing...'));
+  await new Promise(r => setTimeout(r, 600));
   console.log('Capturing 03_gcp_gemini_analyzed.png...');
   await page.screenshot({ path: path.join(tempScreenshots, '03_gcp_gemini_analyzed.png'), clip });
   await recordFrames(15);
@@ -101,7 +111,12 @@ async function run() {
   // 4. Trigger Next Translation sentence (Enter)
   console.log('Triggering next translated sentence (Enter)...');
   await clickButton('Enter');
-  await new Promise(r => setTimeout(r, 1000));
+  // Wait for real translation response
+  await page.waitForFunction(() => {
+    const text = document.body.innerText;
+    return !text.includes('正在实时翻译');
+  }, { timeout: 5000 }).catch(() => {});
+  await new Promise(r => setTimeout(r, 600));
   console.log('Capturing 05_gcp_translate_next.png...');
   await page.screenshot({ path: path.join(tempScreenshots, '05_gcp_translate_next.png'), clip });
   await recordFrames(15);
