@@ -1,0 +1,15 @@
+{
+  "name": "rokid-gcp-multimodal-agent",
+  "version": "1.0.0",
+  "description": "Rokid Glasses Google Cloud AI Multimodal Agent & AR Translator",
+  "main": "app.js",
+  "scripts": {
+    "preview": "aix preview . --dev",
+    "pack": "aix pack . -o dist/rokid-gcp-multimodal-agent.aix -O",
+    "demo": "node scripts/capture_gcp_demo.mjs",
+    "relay": "node server/gcp_relay_server.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.40.0"
+  }
+}

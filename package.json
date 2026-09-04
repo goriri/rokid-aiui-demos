@@ -1,27 +1,28 @@
 {
-  "name": "rokid-glasses-copilot",
+  "name": "rokid-aiui-demos",
   "version": "1.0.0",
-  "description": "Rokid Glasses AR 随身眼脑助手 Demo Agent",
-  "main": "app.js",
-  "type": "module",
+  "description": "Rokid AR Glasses AIUI Demos - Copilot & Google Cloud AI Multimodal Agent",
+  "private": true,
   "scripts": {
-    "dev": "aix preview . --dev --launch",
-    "preview": "aix preview . --dev",
-    "pack": "aix pack . -o dist/rokid-glasses-copilot.aix -O"
-  },
-  "devDependencies": {
-    "@yodaos-pkg/aix-cli": "^0.8.2",
-    "puppeteer-core": "^25.10.0"
+    "preview:demo1": "cd demos/01-rokid-vision-voice-copilot && npx aix preview . --dev",
+    "pack:demo1": "cd demos/01-rokid-vision-voice-copilot && npx aix pack . -o dist/rokid-glasses-copilot.aix -O",
+    "preview:demo2": "cd demos/02-rokid-gcp-multimodal-agent && npx aix preview . --dev",
+    "pack:demo2": "cd demos/02-rokid-gcp-multimodal-agent && npx aix pack . -o dist/rokid-gcp-multimodal-agent.aix -O",
+    "gcp:relay": "node demos/02-rokid-gcp-multimodal-agent/server/gcp_relay_server.mjs",
+    "test:demo1": "cd demos/01-rokid-vision-voice-copilot && node scripts/capture_demo.mjs",
+    "test:demo2": "cd demos/02-rokid-gcp-multimodal-agent && node scripts/capture_gcp_demo.mjs"
   },
   "keywords": [
     "rokid",
     "rokid-glasses",
     "aiui",
-    "agent",
-    "ink",
-    "hud",
-    "ar"
+    "ar-hud",
+    "google-cloud",
+    "vertex-ai",
+    "gemini",
+    "translation",
+    "text-to-speech"
   ],
-  "author": "Antigravity AIUI Dev",
+  "author": "goriri",
   "license": "MIT"
 }

@@ -1,0 +1,27 @@
+{
+  "name": "rokid-glasses-copilot",
+  "version": "1.0.0",
+  "description": "Rokid Glasses AR 随身眼脑助手 Demo Agent",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "dev": "aix preview . --dev --launch",
+    "preview": "aix preview . --dev",
+    "pack": "aix pack . -o dist/rokid-glasses-copilot.aix -O"
+  },
+  "devDependencies": {
+    "@yodaos-pkg/aix-cli": "^0.8.2",
+    "puppeteer-core": "^25.10.0"
+  },
+  "keywords": [
+    "rokid",
+    "rokid-glasses",
+    "aiui",
+    "agent",
+    "ink",
+    "hud",
+    "ar"
+  ],
+  "author": "Antigravity AIUI Dev",
+  "license": "MIT"
+}
