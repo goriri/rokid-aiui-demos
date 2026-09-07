@@ -1,0 +1,13 @@
+{
+  "name": "rokid-aiui-gcp-proxy",
+  "version": "1.0.0",
+  "description": "Rokid AIUI authenticated proxy for Google Cloud AI services",
+  "main": "gcp_relay_server.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node gcp_relay_server.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

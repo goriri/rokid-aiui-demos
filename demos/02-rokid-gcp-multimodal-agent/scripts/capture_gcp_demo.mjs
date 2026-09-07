@@ -38,8 +38,8 @@ async function run() {
     console.log('[REQ FAILED]', req.url(), req.failure()?.errorText);
   });
   page.on('requestfinished', req => {
-    if (req.url().includes('8088')) {
-      console.log('[RELAY REQ SUCCESS]', req.url(), req.response()?.status());
+    if (req.url().includes('8088') || req.url().includes('run.app')) {
+      console.log('[PROXY REQ SUCCESS]', req.url(), req.response()?.status());
     }
   });
 
@@ -88,14 +88,14 @@ async function run() {
   await recordFrames(15);
 
   // 2. Click Enter -> Gemini 2.5 Flash Vision Inference
-  console.log('Triggering Gemini 2.5 Flash inference (Enter)...');
+  console.log('Triggering Gemini 2.5 Flash inference via Cloud Run (Enter)...');
   await clickButton('Enter');
-  // Wait up to 12s for real Vertex AI response to return from Relay
+  // Wait up to 15s for real Vertex AI response to return from Cloud Run Proxy
   await page.waitForFunction(() => {
     const text = document.body.innerText;
-    return text.includes('【Vertex AI // Gemini 2.5】') && !text.includes('正在通过 GCP Relay');
+    return (text.includes('【Vertex AI //') || text.includes('Gemini 2.5】')) && !text.includes('正在通过');
   }, { timeout: 15000 }).catch(() => console.log('Timeout waiting for Vertex AI, continuing...'));
-  await new Promise(r => setTimeout(r, 600));
+  await new Promise(r => setTimeout(r, 800));
   console.log('Capturing 03_gcp_gemini_analyzed.png...');
   await page.screenshot({ path: path.join(tempScreenshots, '03_gcp_gemini_analyzed.png'), clip });
   await recordFrames(15);
@@ -109,14 +109,14 @@ async function run() {
   await recordFrames(15);
 
   // 4. Trigger Next Translation sentence (Enter)
-  console.log('Triggering next translated sentence (Enter)...');
+  console.log('Triggering next translated sentence via Cloud Run (Enter)...');
   await clickButton('Enter');
   // Wait for real translation response
   await page.waitForFunction(() => {
     const text = document.body.innerText;
-    return !text.includes('正在实时翻译');
-  }, { timeout: 5000 }).catch(() => {});
-  await new Promise(r => setTimeout(r, 600));
+    return !text.includes('正在实时同传') && !text.includes('正在实时翻译');
+  }, { timeout: 8000 }).catch(() => {});
+  await new Promise(r => setTimeout(r, 800));
   console.log('Capturing 05_gcp_translate_next.png...');
   await page.screenshot({ path: path.join(tempScreenshots, '05_gcp_translate_next.png'), clip });
   await recordFrames(15);

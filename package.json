@@ -8,7 +8,9 @@
     "pack:demo1": "cd demos/01-rokid-vision-voice-copilot && npx aix pack . -o dist/rokid-glasses-copilot.aix -O",
     "preview:demo2": "cd demos/02-rokid-gcp-multimodal-agent && npx aix preview . --dev",
     "pack:demo2": "cd demos/02-rokid-gcp-multimodal-agent && npx aix pack . -o dist/rokid-gcp-multimodal-agent.aix -O",
+    "pack:all": "npm run pack:demo1 && npm run pack:demo2",
     "gcp:relay": "node demos/02-rokid-gcp-multimodal-agent/server/gcp_relay_server.mjs",
+    "test:proxy": "node demos/02-rokid-gcp-multimodal-agent/scripts/test_proxy_auth_e2e.mjs",
     "test:demo1": "cd demos/01-rokid-vision-voice-copilot && node scripts/capture_demo.mjs",
     "test:demo2": "cd demos/02-rokid-gcp-multimodal-agent && node scripts/capture_gcp_demo.mjs"
   },

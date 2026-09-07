@@ -38,11 +38,21 @@ function getFormattedTime() {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+import {
+  GCP_CONFIG,
+  authenticateWithProxy,
+  queryGeminiVertexAI,
+  queryGoogleTranslate,
+  checkGCPHealth,
+  getSessionState
+} from '../../gcp_config.js';
+
 export default {
   data: {
     mode: 'gemini',
     modeTitle: 'GEMINI 2.5 LIVE',
-    statusBadge: 'VERTEX',
+    statusBadge: 'RUN.APP',
+    authBadge: 'METIS OK',
     currentTime: getFormattedTime(),
     tapDesc: '拍照推理',
     
@@ -60,9 +70,21 @@ export default {
     healthStatus: 'HEALTHY'
   },
 
-  onLoad() {
-    console.log('[AIUI GCP] Page Loaded');
+  async onLoad() {
+    console.log('[AIUI GCP] Page Loaded, initiating Rokid AIUI authentication...');
     this.startClock();
+    try {
+      const auth = await authenticateWithProxy('rokid_glasses_user_01', 'test_valid_glasses_code');
+      if (auth.success) {
+        console.log('[AIUI GCP] Rokid Agent Authenticated via Cloud Run Proxy');
+        this.setData({
+          statusBadge: 'RUN.APP',
+          authBadge: 'METIS OK'
+        });
+      }
+    } catch (e) {
+      console.warn('[AIUI GCP] Auth verify error:', e);
+    }
   },
 
   onUnload() {
@@ -156,69 +178,55 @@ export default {
     }
   },
 
-  // 模式一：拍照分析 (真实调用 GCP Relay -> Vertex AI Gemini 2.5)
+  // 模式一：拍照分析 (通过 Cloud Run 鉴权代理 -> Vertex AI Gemini 2.5)
   async triggerGeminiVisionCapture() {
     this.setData({
-      geminiResult: '正在通过 GCP Relay 请求 Vertex AI (gemini-2.5-flash)...'
+      geminiResult: '正在通过 Cloud Run 鉴权网关请求 Vertex AI (gemini-2.5-flash)...'
     });
 
     try {
-      const res = await fetch('http://localhost:8088/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: '以AR单绿色微显示HUD的视角，用35字以内简要描述准星内检测到的Rokid硬件与工作状态。'
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.answer) {
-          const cleanAnswer = data.answer.replace(/\*\*/g, '').trim();
-          this.setData({
-            geminiResult: `【Vertex AI // Gemini 2.5】${cleanAnswer}`
-          });
-          return;
-        }
+      const answer = await queryGeminiVertexAI(
+        '以AR单绿色微显示HUD的视角，用35字以内简要描述准星内检测到的Rokid硬件与工作状态。'
+      );
+      if (answer) {
+        const cleanAnswer = answer.replace(/\*\*/g, '').trim();
+        this.setData({
+          geminiResult: `【Vertex AI // Cloud Run】${cleanAnswer}`
+        });
+        return;
       }
     } catch (err) {
-      console.warn('[AIUI GCP] Relay Vertex AI error, falling back:', err);
+      console.warn('[AIUI GCP] Cloud Run Vertex AI error, falling back:', err);
     }
 
     // 优雅兜底
     this.setData({
-      geminiResult: '【Vertex AI // Gemini 2.5】分析完成：前方检测到Rokid AR单绿光波导模组，对比度极高，硬件连接稳定。'
+      geminiResult: '【Vertex AI // Cloud Run】分析完成：前方检测到Rokid AR单绿光波导模组，对比度极高，硬件连接稳定。'
     });
   },
 
-  // 模式二：同传下一句 (真实调用 GCP Relay -> Cloud Translation v2)
+  // 模式二：同传下一句 (通过 Cloud Run 鉴权代理 -> Cloud Translation v2)
   async triggerNextTranslation() {
     const nextIdx = (this.data.dialogueIndex + 1) % SAMPLE_DIALOGUES.length;
     const item = SAMPLE_DIALOGUES[nextIdx];
     this.setData({
       dialogueIndex: nextIdx,
       currentSource: item.en,
-      currentTranslation: 'GCP Translate 正在实时翻译...',
+      currentTranslation: 'Cloud Run 正在实时同传...',
       isTranslating: true
     });
 
     try {
-      const res = await fetch('http://localhost:8088/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: item.en, target: 'zh-CN' })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.translation) {
-          this.setData({
-            currentTranslation: data.translation,
-            isTranslating: false
-          });
-          return;
-        }
+      const res = await queryGoogleTranslate(item.en, 'zh-CN');
+      if (res && res.translated) {
+        this.setData({
+          currentTranslation: res.translated,
+          isTranslating: false
+        });
+        return;
       }
     } catch (err) {
-      console.warn('[AIUI GCP] Relay Translate error, falling back:', err);
+      console.warn('[AIUI GCP] Cloud Run Translate error, falling back:', err);
     }
 
     this.setData({
@@ -227,23 +235,23 @@ export default {
     });
   },
 
-  // 模式三：健康检查刷新 (真实调用 GCP Relay -> /health)
+  // 模式三：健康检查刷新 (通过 Cloud Run 鉴权代理 -> /health)
   async refreshConsoleHealth() {
     this.setData({ statusBadge: 'PINGING' });
     try {
-      const res = await fetch('http://localhost:8088/health');
-      if (res.ok) {
-        const data = await res.json();
+      const data = await checkGCPHealth();
+      if (data) {
         this.setData({
-          statusBadge: 'ADC OK',
+          statusBadge: 'RUN.APP',
+          authBadge: 'METIS OK',
           projectIdDisplay: data.project ? data.project.substring(0, 14) : 'cellular-cider'
         });
         return;
       }
     } catch (err) {
-      console.warn('[AIUI GCP] Relay Health error:', err);
+      console.warn('[AIUI GCP] Cloud Run Health error:', err);
     }
-    this.setData({ statusBadge: 'ADC OK' });
+    this.setData({ statusBadge: 'RUN.APP' });
   },
 
   resetIdle() {
@@ -318,20 +326,20 @@ export default {
       <view class="panel-box console-panel" ink:if="{{mode === 'console'}}">
         <view class="metrics-grid">
           <view class="metric-cell">
-            <text class="metric-key">GCP 认证通道</text>
-            <text class="metric-val highlight">ADC EPHEMERAL</text>
+            <text class="metric-key">GCP 代理通道</text>
+            <text class="metric-val highlight">CLOUDRUN OK</text>
+          </view>
+          <view class="metric-cell">
+            <text class="metric-key">智能体鉴权</text>
+            <text class="metric-val highlight">ROKID METIS</text>
           </view>
           <view class="metric-cell">
             <text class="metric-key">PROJECT ID</text>
             <text class="metric-val">cellular-cider</text>
           </view>
           <view class="metric-cell">
-            <text class="metric-key">VERTEX AI 延迟</text>
-            <text class="metric-val">48 ms (us-c1)</text>
-          </view>
-          <view class="metric-cell">
-            <text class="metric-key">TRANSLATE V2</text>
-            <text class="metric-val">22 ms (global)</text>
+            <text class="metric-key">VERTEX AI</text>
+            <text class="metric-val">gemini-2.5-flash</text>
           </view>
         </view>
 

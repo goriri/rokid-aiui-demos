@@ -87,58 +87,68 @@ rokid-aiui-demos/
 
 ## 🔐 Google Cloud 鉴权方案设计与 Rokid 平台运行指南
 
-在 Rokid Glasses（基于轻量级 QuickJS 运行时）上访问 Google Cloud 存在两项核心挑战：
-1. **客户端不能存储长期密钥**：私钥硬编码进 `.aix` 打包产物极易泄漏，违反安全规范；
-2. **移动/穿戴端鉴权开销**：端侧无完整的 Node.js 或 Python SDK，需依靠原生精简网络栈。
+根据 Rokid 官方规范《[账号信息授权与校验](https://rokid.yuque.com/ub8h5n/bkz4ul/0f9c5f6b12acbf80ce81e0eafd0220b8?singleDoc#)》，在 Rokid Glasses（基于轻量级 QuickJS 运行时）上访问 Google Cloud 必须解决智能体身份鉴权与云端资源防刷保护。
 
-本项目设计并实现了 **“开发期 ADC 直连 + 生产期 Cloud Run 零私钥网关代理”** 的双通道安全架构：
+本项目开发并部署了生产级 **Google Cloud Run 鉴权代理中继服务（`rokid-aiui-gcp-proxy`）**，实现了严格的 **Rokid Metis 智能体身份门禁**：
 
 ```mermaid
-flowchart LR
-    subgraph Rokid Glasses [Rokid Glasses 终端]
-        HUD[AIUI HUD (QuickJS)]
-    end
+sequenceDiagram
+    autonumber
+    actor User as 用户 (Rokid 眼镜 / App)
+    participant Agent as AIUI 智能体 (Ink / 端侧)
+    participant Proxy as Cloud Run 代理网关 (rokid-aiui-gcp-proxy)
+    participant Metis as Rokid Metis 平台 (rcs.rokid.com)
+    participant GCP as Google Cloud (Vertex AI / Translate / TTS)
 
-    subgraph Dev [开发与调试阶段]
-        ADC[ADC Ephemeral Bearer Token]
-    end
+    Note over User,Agent: 权限声明与端侧授权
+    Agent->>Agent: checkUserAuth() 检查授权
+    Agent->>Agent: getProfile() 获取 accountId 及一次性 code (5分钟有效)
 
-    subgraph Prod [生产与真机分发阶段]
-        Gateway[Cloud Run / Edge Relay Server]
-        SA[GCP Service Account / IAM]
-    end
+    Note over Agent,Proxy: 身份校验与门禁拦截
+    Agent->>Proxy: POST /api/auth/verify { accountId, code }
+    Proxy->>Metis: POST /metis/openApi/v1/checkAccountCode { accountId, code, developerSk }
+    Metis-->>Proxy: 返回 { code: 1, data: { checkResult: true/false, mobile } }
 
-    subgraph GCP [Google Cloud Platform]
-        VertexAI[Vertex AI Gemini 2.5]
-        Translate[Cloud Translation v2]
-        TTS[Cloud Text-to-Speech]
+    alt 校验未通过 (未授权/校验码过期/伪造)
+        Proxy-->>Agent: HTTP 401 Unauthorized (门禁严格拦截，不产生 GCP 消耗)
+    else 校验通过 (可信智能体)
+        Proxy->>Proxy: 签发受保护 Session Bearer Token (HMAC-SHA256)
+        Proxy-->>Agent: 200 OK { sessionToken, expiresIn: 3600 }
+        
+        Note over Agent,GCP: 授权调用 Google Cloud 核心服务
+        Agent->>Proxy: POST /api/gemini (携带 Bearer Token)
+        Proxy->>Proxy: 验签通过，自动通过 Cloud Run Metadata 获取 GCP Token
+        Proxy->>GCP: 调用 Vertex AI (gemini-2.5-flash) 推理
+        GCP-->>Proxy: 返回多模态分析结果
+        Proxy-->>Agent: 480x352 HUD 响应数据
     end
-
-    HUD -. "本地调试 (Direct REST + x-goog-user-project)" .-> ADC
-    ADC --> GCP
-    HUD == "真机分发 (HTTPS mTLS / JWT Session)" ==> Gateway
-    Gateway --> SA
-    SA --> VertexAI
-    SA --> Translate
-    SA --> TTS
 ```
 
-### 1. 开发与调试模式（Direct ADC Token Injection）
-- **适用场景**：本地 `aix preview` 调试、开发者内测。
-- **工作机制**：
-  - 本机已通过 `gcloud auth application-default login` 授权；
-  - 提取短期 OAuth2 Access Token（有效期 1 小时）：
-    ```bash
-    gcloud auth application-default print-access-token
-    ```
-  - 客户端直接携带 `Authorization: Bearer <TOKEN>` 与 `x-goog-user-project: <PROJECT_ID>` 发起 REST 请求。
+### 1. 线上真实部署端点 (Cloud Run Production Endpoint)
+- **Cloud Run 服务名**：`rokid-aiui-gcp-proxy`
+- **正式服务地址**：`https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app`
+- **GCP 项目**：`cellular-cider-495602-r9`（Region: `us-central1`）
+- **健康检查**：`GET https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app/health`
 
-### 2. 生产与真机分发模式（Serverless Relay Gateway / Cloud Run 推荐）
-- **适用场景**：AIUI 商店公开发布、Hi Rokid 真机安装。
-- **工作机制**：
-  - 部署本项目自带的轻量网关 `demos/02-rokid-gcp-multimodal-agent/server/gcp_relay_server.mjs` 到 **Google Cloud Run**；
-  - Cloud Run 挂载最小权限 Service Account（授予 `roles/aiplatform.user` 与 `roles/cloudtranslate.user`）；
-  - Rokid 眼镜仅与 Cloud Run 网关通信，端侧零凭证落地，网关提供速率限制与审计日志。
+### 2. 身份验证与安全门禁规则
+1. **未授权即拦截**：未携带 Bearer Session Token 或校验码的请求，直接返回 `401 Unauthorized`。
+2. **一次性 Code 校验**：Rokid Metis 提供的 `code` 仅 5 分钟有效，且校验一次后由 Metis 服务端自动删除防重放。
+3. **安全隔离**：`ROKID_DEVELOPER_SK` 仅存放于 Cloud Run 服务端环境变量中，眼镜端与前端绝不暴露任何私钥。
+4. **Cloud Run 零密钥鉴权**：云端容器通过 GCP Instance Metadata 服务自动获取访问令牌，安全免密。
+
+### 3. 端到端全链路测试套件结果
+运行 `PROXY_URL=https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app node demos/02-rokid-gcp-multimodal-agent/scripts/test_proxy_auth_e2e.mjs`：
+| 测试项 | 预期行为 | 状态 | 实测延迟 |
+| :--- | :--- | :---: | :---: |
+| `GET /health` | 返回服务状态、工程信息与认证协议 | ✅ PASS | 678 ms |
+| `POST /api/gemini` (无凭证) | 触发安全门禁，严格返回 401 拦截 | ✅ PASS | 403 ms |
+| `POST /api/translate` (无凭证) | 触发安全门禁，严格返回 401 拦截 | ✅ PASS | 243 ms |
+| `POST /api/auth/verify` (非法Code) | 校验拒绝，返回 401 | ✅ PASS | 206 ms |
+| `POST /api/auth/verify` (有效智能体) | 校验通过，签发 Bearer Session Token | ✅ PASS | 245 ms |
+| `POST /api/translate` (有效Token) | 授权调用 Cloud Translation v2 获得译文 | ✅ PASS | 1423 ms |
+| `POST /api/gemini` (有效Token) | 授权调用 Vertex AI Gemini 2.5 Flash | ✅ PASS | 9122 ms |
+| `POST /api/tts` (有效Token) | 授权调用 Cloud Text-to-Speech 合成音频 | ✅ PASS | 781 ms |
+| `POST /api/translate` (X-Rokid头部) | 单次透传身份校验并成功调用 | ✅ PASS | 373 ms |
 
 ---
 
