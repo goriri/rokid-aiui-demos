@@ -33,10 +33,16 @@ rokid-aiui-demos/
 │       ├── assets/recordings/
 │       └── package.json
 │
+├── docs/                                  # 官方全流程工程开发指南与最佳实践
+│   └── ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md  # 开发、测试、云端代理、打包与真机扫码部署全书
+│
 ├── package.json                           # 全局 Monorepo 脚本 (统一构建、打包与预览)
 ├── AGENTS.md                              # 智能体清单与硬件权限规范
 └── README.md
 ```
+
+> 📖 **完整实战工程指南**: 详细请参阅 [Rokid AIUI 智能体开发、测试、打包与部署全流程工程指南](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md)，涵盖双平台部署、源码 Cache 正则防坑、Cloud Run 鉴权中继与真机扫码。
+
 
 ---
 

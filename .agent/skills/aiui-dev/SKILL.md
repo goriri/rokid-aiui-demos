@@ -905,3 +905,13 @@ console.log('Image data size:', photo.data.byteLength);
 const uuid = crypto.randomUUID();
 const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('hello AIUI'));
 ```
+
+## 9. Testing, Debugging & Cloud Deployment
+
+For end-to-end instructions on testing, packaging, and deploying AIUI agents to Rokid Glasses, see [testing-debugging-deployment.md](./testing-debugging-deployment.md). Key takeaways include:
+
+- **Packaging Types**: AIUI distinguishes between runtime installation packages (`.aix` ZIP archives) and Web Studio source cache packages (`cache.zip`).
+- **Cache Naming Regex**: Studio enforces `^${agentId}-cache-v(\\d+)-(\\d{8}T\\d{6}Z)-([a-z0-9]{10})\\.zip$` and single-folder hierarchy. Violations result in the `Failed` / `同步失败` status.
+- **Third-Party Auth Relay**: Because the glasses runtime lacks complex SDKs and ADC keychains, connect via a secure relay proxy (e.g. Cloud Run) using `X-AIUI-Signature` verification.
+- **Real-Device QR Loading**: Deliver debug builds to Rokid Glasses via the companion app's device scanner (`/debug?agentId=...`).
+
