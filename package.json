@@ -26,5 +26,8 @@
     "text-to-speech"
   ],
   "author": "goriri",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "qrcode": "^1.5.4"
+  }
 }
