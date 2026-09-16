@@ -28,6 +28,10 @@
   "author": "goriri",
   "license": "MIT",
   "devDependencies": {
+    "puppeteer-core": "^25.11.0",
     "qrcode": "^1.5.4"
+  },
+  "dependencies": {
+    "ali-oss": "^6.23.0"
   }
 }
