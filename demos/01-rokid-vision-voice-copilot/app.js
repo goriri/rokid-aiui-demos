@@ -15,7 +15,7 @@ export default {
     console.error('[AIUI App] Runtime Error:', error);
   },
   globalData: {
-    agentName: 'AR 随身眼脑助手',
+    agentName: 'Vision Voice Copilot',
     version: '1.0.0',
     deviceType: 'RokidGlasses',
     viewport: {

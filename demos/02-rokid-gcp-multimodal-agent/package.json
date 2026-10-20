@@ -10,6 +10,7 @@
     "relay": "node server/gcp_relay_server.mjs"
   },
   "devDependencies": {
+    "@yodaos-pkg/aix-cli": "^0.10.1",
     "puppeteer-core": "^24.40.0"
   }
 }

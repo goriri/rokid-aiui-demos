@@ -1,8 +1,27 @@
 {
+  "agentName": "GCP Multimodal Agent",
+  "agentDesc": "Google Cloud Vertex AI and Cloud Translation assistant for Rokid Glasses monochrome-green HUD, featuring camera vision Q&A, live bilingual subtitle translation, and a cloud node status board.",
+  "agentPrompt": "Hello, I am the GCP Multimodal Agent. Tap the temple to capture a photo for Vertex AI vision analysis or switch to live bilingual subtitles.",
+  "agentLogo": "assets/icon.png",
+  "logo": "assets/icon.png",
+  "version": "1.0.0",
+  "engine": ">=0.18.0",
+  "inkVersion": ">=0.18.0",
+  "permissions": [
+    "CAMERA"
+  ],
+  "timeout": 25000,
+  "networkTimeout": {
+    "request": 25000,
+    "connectSocket": 10000,
+    "uploadFile": 25000,
+    "downloadFile": 25000
+  },
   "pages": [
     "pages/index/index"
   ],
   "window": {
+    "navigationBarTitleText": "GCP Multimodal Agent",
     "defaultTitle": "GCP Multimodal Agent",
     "backgroundTextStyle": "dark"
   }

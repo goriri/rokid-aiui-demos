@@ -10,7 +10,7 @@
     "pack": "aix pack . -o dist/rokid-glasses-copilot.aix -O"
   },
   "devDependencies": {
-    "@yodaos-pkg/aix-cli": "^0.8.2",
+    "@yodaos-pkg/aix-cli": "^0.10.1",
     "puppeteer-core": "^25.10.0"
   },
   "keywords": [

@@ -15,7 +15,7 @@ export default {
     console.error('[AIUI GCP App] Runtime Error:', error);
   },
   globalData: {
-    agentName: 'GCP 多模态眼镜助理',
+    agentName: 'GCP Multimodal Agent',
     version: '1.0.0',
     deviceType: 'RokidGlasses',
     viewport: {

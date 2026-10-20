@@ -5,5 +5,8 @@ node_modules
 .gitignore
 .aixignore
 package-lock.json
-assets
+assets/recordings
+assets/screenshots
+assets/review
+assets/qrcode_global.png
 scripts

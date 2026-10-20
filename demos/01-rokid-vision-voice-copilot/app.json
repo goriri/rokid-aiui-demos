@@ -1,9 +1,27 @@
 {
+  "agentName": "Vision Voice Copilot",
+  "agentDesc": "Hands-free AI copilot for Rokid Glasses monochrome-green HUD. Voice Q&A uses the Rokid on-device assistant LLM (Metis), temple-tap scene analysis sends a camera photo to a Google Cloud (Vertex AI Gemini) proxy, and the dashboard shows IMU telemetry.",
+  "agentPrompt": "Hello! I am your Vision & Voice Copilot. Tap the temple or speak a wake word to ask a question or analyze the scene ahead.",
+  "agentLogo": "assets/icon.png",
+  "logo": "assets/icon.png",
+  "engine": ">=0.18.0",
+  "inkVersion": ">=0.18.0",
+  "permissions": [
+    "CAMERA",
+    "RECORD_AUDIO"
+  ],
+  "timeout": 25000,
+  "networkTimeout": {
+    "request": 25000,
+    "connectSocket": 10000,
+    "uploadFile": 25000,
+    "downloadFile": 25000
+  },
   "pages": [
     "pages/index/index"
   ],
   "window": {
-    "navigationBarTitleText": "随身眼脑助手",
+    "navigationBarTitleText": "Vision Voice Copilot",
     "backgroundColor": "#000000"
   }
 }
