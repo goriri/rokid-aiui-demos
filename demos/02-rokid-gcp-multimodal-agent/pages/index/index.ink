@@ -14,7 +14,7 @@ const STRINGS = {
     translateTargetLang: 'en',
     brand: 'GCP',
     modeTitles: {
-      gemini: 'GEMINI 2.5 LIVE',
+      gemini: 'GEMINI 4 LIVE',
       translate: 'AR TRANSLATOR',
       console: 'CLOUD CONSOLE'
     },
@@ -24,7 +24,7 @@ const STRINGS = {
       console: 'Ping Health'
     },
     reticleLabel: 'AI TARGET ACQUISITION',
-    geminiBoxLabel: 'VERTEX AI // GEMINI-2.5-FLASH',
+    geminiBoxLabel: 'VERTEX AI // GEMINI-4',
     geminiInitial: 'Tap temple to capture a photo; Vertex AI will analyze the target inside the reticle.',
     geminiReset: 'System reset. Tap temple to capture a photo for Vertex AI spatial reasoning.',
     geminiCapturing: 'Capturing camera frame via Rokid Glasses...',
@@ -69,7 +69,7 @@ const STRINGS = {
     metricAuthVal: 'ROKID METIS',
     metricProjectKey: 'PROJECT ID',
     metricModelKey: 'VERTEX AI',
-    metricModelVal: 'gemini-2.5-flash',
+    metricModelVal: 'gemini-4-argon',
     chipGemini: 'GEMINI',
     chipTranslate: 'TRANSLATE',
     chipTts: 'TTS',
@@ -85,7 +85,7 @@ const STRINGS = {
     translateTargetLang: 'zh-CN',
     brand: 'GCP',
     modeTitles: {
-      gemini: 'GEMINI 2.5 LIVE',
+      gemini: 'GEMINI 4 LIVE',
       translate: 'AR TRANSLATOR',
       console: 'CLOUD CONSOLE'
     },
@@ -95,7 +95,7 @@ const STRINGS = {
       console: '刷新健康'
     },
     reticleLabel: 'AI TARGET ACQUISITION',
-    geminiBoxLabel: 'VERTEX AI // GEMINI-2.5-FLASH',
+    geminiBoxLabel: 'VERTEX AI // GEMINI-4',
     geminiInitial: '点击轻拍触发拍摄，Vertex AI 将对准星内目标进行多模态空间推理。',
     geminiReset: '系统已复位。点击轻拍触发拍摄，Vertex AI 将对准星内目标进行多模态空间推理。',
     geminiCapturing: '正在调用眼镜相机抓取视野图像...',
@@ -140,7 +140,7 @@ const STRINGS = {
     metricAuthVal: 'ROKID METIS',
     metricProjectKey: 'PROJECT ID',
     metricModelKey: 'VERTEX AI',
-    metricModelVal: 'gemini-2.5-flash',
+    metricModelVal: 'gemini-4-argon',
     chipGemini: 'GEMINI',
     chipTranslate: 'TRANSLATE',
     chipTts: 'TTS',
@@ -418,7 +418,7 @@ export default {
     }
   },
 
-  // Mode 1: Camera capture -> JPEG base64 -> Cloud Run Proxy -> Vertex AI Gemini 2.5
+  // Mode 1: Camera capture -> JPEG base64 -> Cloud Run Proxy -> Vertex AI Gemini 4
   async triggerGeminiVisionCapture() {
     if (this.data.isCapturing || this.data.isTranslating || this.data.isBusy) return;
 
@@ -624,7 +624,7 @@ export default {
 
     <!-- Main Viewport -->
     <view class="hud-body">
-      <!-- Mode 1: Vertex AI Gemini 2.5 Multimodal Vision -->
+      <!-- Mode 1: Vertex AI Gemini 4 Multimodal Vision -->
       <view class="panel-box gemini-panel" ink:if="{{mode === 'gemini'}}">
         <view class="reticle-container">
           <view class="crosshair-h"></view>

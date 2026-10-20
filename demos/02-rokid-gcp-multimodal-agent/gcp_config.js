@@ -6,7 +6,7 @@
 export const GCP_CONFIG = {
   projectId: 'cellular-cider-495602-r9',
   region: 'us-central1',
-  geminiModel: 'gemini-2.5-flash',
+  geminiModel: 'gemini-4-argon',
   cloudRunUrl: 'https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app',
   localRelayUrl: 'http://localhost:8088',
   defaultTargetLang: 'en',
@@ -156,7 +156,7 @@ export async function authenticateWithProxy(accountId, code) {
 }
 
 /**
- * Call Vertex AI Gemini 2.5 Flash via Authenticated Cloud Run Proxy (25s timeout for vision)
+ * Call Vertex AI Gemini 4 via Authenticated Cloud Run Proxy (25s timeout for vision)
  */
 export async function queryGeminiVertexAI(prompt, imageBase64 = null, locale = 'en') {
   const targetUrl = GCP_CONFIG.cloudRunUrl || GCP_CONFIG.localRelayUrl;

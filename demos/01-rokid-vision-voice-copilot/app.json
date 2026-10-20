@@ -4,6 +4,8 @@
   "agentPrompt": "Hello! I am your Vision & Voice Copilot. Tap the temple or speak a wake word to ask a question or analyze the scene ahead.",
   "agentLogo": "assets/icon.png",
   "logo": "assets/icon.png",
+  "version": "1.0.6",
+  "nativeVersion": "1.0.6",
   "engine": ">=0.18.0",
   "inkVersion": ">=0.18.0",
   "permissions": [

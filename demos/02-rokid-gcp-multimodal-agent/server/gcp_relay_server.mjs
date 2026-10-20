@@ -6,7 +6,8 @@ import { execSync } from 'child_process';
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const PROJECT_ID = process.env.GCP_PROJECT || 'cellular-cider-495602-r9';
 const REGION = process.env.GCP_REGION || 'us-central1';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_LOCATION = process.env.GEMINI_LOCATION || 'global';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-4-argon';
 const ROKID_DEVELOPER_SK = process.env.ROKID_DEVELOPER_SK || 'SK-3D7F2A9C1E5B';
 const JWT_SECRET = process.env.JWT_SECRET || 'rokid-aiui-jwt-secret-key-2026-safe-guard';
 const ALLOW_TEST_TOKENS = process.env.ALLOW_TEST_TOKENS === 'true' || true;
@@ -275,6 +276,7 @@ const server = http.createServer(async (req, res) => {
       authProtocol: 'Rokid Metis checkAccountCode + HMAC Bearer Session',
       project: PROJECT_ID,
       region: REGION,
+      geminiLocation: GEMINI_LOCATION,
       model: GEMINI_MODEL,
       timestamp: new Date().toISOString()
     });
@@ -359,27 +361,36 @@ const server = http.createServer(async (req, res) => {
 
       try {
         if (url.pathname === '/api/gemini') {
-          const { prompt, imageBase64 } = json;
+          const { prompt, imageBase64, mimeType } = json;
           const parts = [{ text: prompt || '请简要分析当前视野。' }];
           if (imageBase64) {
             parts.push({
               inlineData: {
-                mimeType: 'image/jpeg',
+                mimeType: mimeType || 'image/jpeg',
                 data: imageBase64
               }
             });
           }
 
+          const geminiHost = GEMINI_LOCATION === 'global'
+            ? 'aiplatform.googleapis.com'
+            : `${GEMINI_LOCATION}-aiplatform.googleapis.com`;
+
           const gcpRes = await postGoogleApi(
-            `${REGION}-aiplatform.googleapis.com`,
-            `/v1/projects/${PROJECT_ID}/locations/${REGION}/publishers/google/models/${GEMINI_MODEL}:generateContent`,
+            geminiHost,
+            `/v1/projects/${PROJECT_ID}/locations/${GEMINI_LOCATION}/publishers/google/models/${GEMINI_MODEL}:generateContent`,
             authHeaders,
-            { contents: [{ role: 'user', parts }] }
+            {
+              contents: [{ role: 'user', parts }]
+            }
           );
 
-          const answer = gcpRes?.candidates?.[0]?.content?.parts?.[0]?.text || '模型未返回有效结果';
+          const candidateParts = gcpRes?.candidates?.[0]?.content?.parts || [];
+          const textPart = candidateParts.find(p => typeof p.text === 'string' && !p.thought) || candidateParts[0];
+          const answer = textPart?.text || '模型未返回有效结果';
           return sendJson(res, 200, {
             answer,
+            model: gcpRes?.modelVersion || GEMINI_MODEL,
             caller: auth.user.accountId,
             authType: auth.authType,
             raw: gcpRes

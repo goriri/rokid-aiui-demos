@@ -4,7 +4,8 @@
   "agentPrompt": "Hello, I am the GCP Multimodal Agent. Tap the temple to capture a photo for Vertex AI vision analysis or switch to live bilingual subtitles.",
   "agentLogo": "assets/icon.png",
   "logo": "assets/icon.png",
-  "version": "1.0.0",
+  "version": "1.0.5",
+  "nativeVersion": "1.0.5",
   "engine": ">=0.18.0",
   "inkVersion": ">=0.18.0",
   "permissions": [

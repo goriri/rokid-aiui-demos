@@ -36,7 +36,7 @@ This document provides the exact metadata, permission purpose strings, network/d
 
 - **Endpoints**:
   - **Voice Q&A (`CHAT` mode)**: Rokid AIUI host runtime `LanguageModel` service (Rokid Metis LLM endpoint).
-  - **Scene Analysis (`VISION` mode)**: Google Cloud Run authenticated relay proxy at `https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app` (`/api/auth/verify` and `/api/gemini`, backed by Vertex AI Gemini).
+  - **Scene Analysis (`VISION` mode)**: Google Cloud Run authenticated relay proxy at `https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app` (`/api/auth/verify` and `/api/gemini`, backed by Vertex AI `gemini-4-argon`).
 - **Data Sent**:
   - **Voice Q&A (`CHAT` mode)**: System prompt + user's transcribed voice query (`session.promptStreaming(query)`) sent to Rokid Metis (`LanguageModel`).
   - **Vision Analysis (`VISION` mode)**: Base64-encoded camera photo (`image/webp` from `takePhoto({ quality: 'low' })`) + short English scene description prompt (`POST /api/gemini` with 25s timeout) sent to the Google Cloud Run Vertex AI proxy (`https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app/api/gemini`).
@@ -85,7 +85,7 @@ This document provides the exact metadata, permission purpose strings, network/d
 - **Endpoint**: Google Cloud Run authenticated relay proxy at `https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app` (`GCP_CONFIG.cloudRunUrl` in `gcp_config.js`).
 - **Data Sent**:
   - **Authentication (`POST /api/auth/verify`)**: Rokid account identifier and verification code to obtain a short-lived Bearer session token.
-  - **Vision Analysis (`POST /api/gemini`)**: Base64-encoded JPEG camera frame (`imageBase64`) + text prompt (`prompt`) forwarded to Vertex AI (`gemini-2.5-flash`).
+  - **Vision Analysis (`POST /api/gemini`)**: Base64-encoded JPEG camera frame (`imageBase64`) + text prompt (`prompt`) forwarded to Vertex AI (`gemini-4-argon`).
   - **Subtitle Translation (`POST /api/translate`)**: Source utterance string (`text`) + target language code (`target: 'en' | 'zh-CN'`) forwarded to Google Cloud Translation API v2.
   - **Health Check (`GET /health`)**: Read-only status probe for the `CLOUD` node telemetry tab.
 - **API Key / Secret Audit (`gcp_config.js`)**:
