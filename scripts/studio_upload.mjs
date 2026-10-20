@@ -44,8 +44,8 @@ const DEMOS = [
     iconRelPath: 'assets/icon.png',
     category: 'work',
     categoryName: '工作',
-    versionLog:
-      'v1.0.0: Initial Global Studio release of Vision Voice Copilot for Rokid Glasses 480x352 monochrome-green HUD with Metis voice Q&A, Cloud Run Gemini vision analysis, and 5Hz IMU telemetry dashboard.',
+    versionLogSuffix:
+      'Global Studio release of Vision Voice Copilot for Rokid Glasses 480x352 monochrome-green HUD with Metis voice Q&A, Cloud Run Gemini vision analysis, and 5Hz IMU telemetry dashboard.',
     permissionPurposes: {
       CAMERA:
         'Used when the user taps the temple in VISION mode to capture a single scene photo (wx.media.createCameraContext().takePhoto) for multimodal object and scene recognition.',
@@ -70,8 +70,8 @@ const DEMOS = [
     iconRelPath: 'assets/icon.png',
     category: 'work',
     categoryName: '工作',
-    versionLog:
-      'v1.0.0: Initial Global Studio release of GCP Multimodal Agent for Rokid Glasses 480x352 monochrome-green HUD with Vertex AI Gemini vision Q&A, Cloud Translation bilingual subtitles, and Cloud Run health telemetry.',
+    versionLogSuffix:
+      'Global Studio release of GCP Multimodal Agent for Rokid Glasses 480x352 monochrome-green HUD with Vertex AI Gemini vision Q&A, Cloud Translation bilingual subtitles, and Cloud Run health telemetry.',
     permissionPurposes: {
       CAMERA:
         'Used when the user taps the temple in GEMINI vision mode to capture a scene photo (wx.media.createCameraContext().takePhoto) for Vertex AI Gemini multimodal scene analysis.'
@@ -411,22 +411,28 @@ async function main() {
       needParamObj[perm] = purpose;
     }
 
+    const versionLog = `v${aixShow.nativeVersion}: ${demo.versionLogSuffix}`;
+    const validServerCategories = ['life', 'work', 'entertainment', 'study'];
+    const resolvedCategory = validServerCategories.includes(cloudAgent.category)
+      ? cloudAgent.category
+      : demo.category;
+
     const savePayload = {
       agentId: cloudAgent.agentId,
       thirdAgentId: cloudAgent.thirdAgentId || cloudAgent.agentId,
       agentName: aixShow.agentName,
       agentVersion: aixShow.nativeVersion,
       nativeVersion: aixShow.nativeVersion,
-      category: demo.category,
+      category: resolvedCategory,
       categoryName: demo.categoryName,
       description: aixShow.agentDesc,
       agentPrompt: aixShow.agentPrompt,
       prologue: aixShow.agentPrompt,
-      versionLog: demo.versionLog,
+      versionLog,
       icon: iconCdnUrl,
       filePath: aixCdnUrl,
       fileMd5: aixMd5,
-      codeFilePath: cacheAccelUrl,
+      codeFilePath: cacheObjectKey,
       codeFileMd5: cacheMd5,
       permissions: permissionsList.join(','),
       permissionsDesc: JSON.stringify(permissionsDescObj),
@@ -443,6 +449,7 @@ async function main() {
     };
 
     const updateThirdAgentPayload = {
+      ...cloudAgent,
       ...savePayload,
       codeFilePath: cacheObjectKey
     };
@@ -478,21 +485,15 @@ async function main() {
         await putOssObject(sts, media.objectKey, media.buffer, media.mime, media.fileName);
       }
 
-      const saveRes = await fetch(ENDPOINTS.saveAIUIAgent, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', access_token: loginResult.token },
-        body: JSON.stringify(savePayload)
-      });
-      const saveJson = await saveRes.json();
-      console.log(`  [LIVE] saveAIUIAgent response: HTTP ${saveRes.status}, code=${saveJson?.code}, msg=${saveJson?.msg}`);
-
       const updateRes = await fetch(ENDPOINTS.updateThirdAgent, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', access_token: loginResult.token },
         body: JSON.stringify(updateThirdAgentPayload)
       });
       const updateJson = await updateRes.json();
-      console.log(`  [LIVE] updateThirdAgent response: HTTP ${updateRes.status}, code=${updateJson?.code}, msg=${updateJson?.msg}`);
+      console.log(
+        `  [LIVE] updateThirdAgent response: HTTP ${updateRes.status}, code=${updateJson?.code}, msg=${updateJson?.msg}, nativeVersion=${updateJson?.data?.nativeVersion}`
+      );
     }
   }
 }
