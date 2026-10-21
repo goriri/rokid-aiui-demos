@@ -4,8 +4,8 @@
   "agentPrompt": "Hello! I am GCP Live Translator. Start Live Translate to stream nearby speech for real-time spoken English and HUD transcripts, or tap the temple in Vision mode to analyze a scene.",
   "agentLogo": "assets/icon.png",
   "logo": "assets/icon.png",
-  "version": "1.0.11",
-  "nativeVersion": "1.0.11",
+  "version": "1.0.12",
+  "nativeVersion": "1.0.12",
   "engine": ">=0.18.0",
   "inkVersion": ">=0.18.0",
   "permissions": [

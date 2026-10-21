@@ -46,7 +46,7 @@ const STRINGS = {
     translateSpeaking: '>> SPEAKING TRANSLATION...',
     translateFinishing: '>> FINISHING TURN...',
     translateErrorStatus: '>> LIVE TRANSLATION ERROR',
-    translateInitialSource: 'Tap temple to start omnidirectional mic capture (16 kHz PCM).',
+    translateInitialSource: 'Tap the temple to start live translation (far-field mic).',
     translateInitialTarget: 'Gemini Live (gemini-3.5-live-translate) streams English speech & subtitles.',
     translateConnectingSource: 'Opening authenticated WebSocket to Cloud Run Gemini Live...',
     translateListeningSource: 'Listening for speech...',
@@ -108,7 +108,7 @@ const STRINGS = {
     translateSpeaking: '>> 正在播报同传语音...',
     translateFinishing: '>> 正在完成本轮同传...',
     translateErrorStatus: '>> 实时同传连接异常',
-    translateInitialSource: '轻拍镜腿启动全向麦克风实时拾音 (16 kHz PCM)。',
+    translateInitialSource: '轻拍镜腿开始实时同传（远场麦克风）。',
     translateInitialTarget: 'Gemini Live (gemini-3.5-live-translate) 实时流式输出英文语音与字幕。',
     translateConnectingSource: '正在建立 Cloud Run Gemini Live 鉴权连接...',
     translateListeningSource: '正在聆听周围语音...',
@@ -141,6 +141,14 @@ const MODE_TITLES = T.modeTitles;
 const MAX_LIVE_SESSION_SECONDS = 290; // 4:50 auto-stop (under 5:00 server cap)
 const LIVE_MIC_MODE_FALLBACK = 'omnidirectional';
 const LIVE_MIC_MODE = 'far-field';
+const VAD_HANGOVER_MS = 700;
+const VAD_PEAK_THRESHOLD = 8500;
+const VAD_RMS_MIN = 1800;
+const HOLD_MIN_QUEUE_SEC = 0.8;
+const HOLD_REBUFFER_QUEUE_SEC = 0.4;
+const HOLD_CHUNK_IDLE_MS = 400;
+const HOLD_SAFETY_CAP_MS = 6000;
+const FADE_SAMPLES_24K = 120; // 5ms at 24kHz
 
 function getFormattedTime() {
   const d = new Date();
@@ -194,13 +202,14 @@ function processMicWavChunk(ab, mute = false, gain = 0.7) {
   const usableBytes = (ab.byteLength - offset) & ~1;
   if (usableBytes <= 0) return null;
   if (mute) {
-    return { buffer: new ArrayBuffer(usableBytes), peak: 0 };
+    return { buffer: new ArrayBuffer(usableBytes), peak: 0, rms: 0 };
   }
   const srcView = new DataView(ab, offset, usableBytes);
   const outBuf = new ArrayBuffer(usableBytes);
   const dstView = new DataView(outBuf);
   const samples = usableBytes >> 1;
   let peak = 0;
+  let sumSq = 0;
   for (let i = 0; i < samples; i++) {
     const bytePos = i * 2;
     const raw = srcView.getInt16(bytePos, true);
@@ -209,9 +218,11 @@ function processMicWavChunk(ab, mute = false, gain = 0.7) {
     else if (scaled < -32768) scaled = -32768;
     const abs = scaled < 0 ? -scaled : scaled;
     if (abs > peak) peak = abs;
+    sumSq += scaled * scaled;
     dstView.setInt16(bytePos, scaled, true);
   }
-  return { buffer: outBuf, peak };
+  const rms = samples > 0 ? Math.round(Math.sqrt(sumSq / samples)) : 0;
+  return { buffer: outBuf, peak, rms };
 }
 
 import wx from 'wx';
@@ -274,6 +285,10 @@ export default {
     this.nextPlayTime = 0;
     this.echoMuteUntilMs = 0;
     this.pendingPlayChunks = [];
+    this.queuedAudioSec = 0;
+    this.holdStartedAt = 0;
+    this.playRunActive = false;
+    this.vadSpeaking = false;
     this.liveInputBuffer = '';
     this.liveOutputBuffer = '';
     this.turnCompletedSinceLastInput = false;
@@ -638,6 +653,14 @@ export default {
       clearTimeout(this.playDrainTimer);
       this.playDrainTimer = null;
     }
+    if (this.holdCheckTimer) {
+      clearTimeout(this.holdCheckTimer);
+      this.holdCheckTimer = null;
+    }
+    if (this.runDrainTimer) {
+      clearTimeout(this.runDrainTimer);
+      this.runDrainTimer = null;
+    }
   },
 
   releaseMicOnly() {
@@ -692,6 +715,10 @@ export default {
     this.nextPlayTime = 0;
     this.echoMuteUntilMs = 0;
     this.pendingPlayChunks = [];
+    this.queuedAudioSec = 0;
+    this.holdStartedAt = 0;
+    this.playRunActive = false;
+    this.vadSpeaking = false;
 
     if (wasActive) {
       console.log(
@@ -748,6 +775,11 @@ export default {
 
     this.liveStopping = true;
     this.releaseMicOnly();
+    if (this.vadSpeaking) {
+      this.vadSpeaking = false;
+      console.log(`[LiveTranslate] VAD_SPEAKING state=off rms=0 peak=0 floor=${Math.round(this.vadNoiseFloor || 800)} reason=stop`);
+    }
+    this.evaluatePlaybackGate(myTurnId);
 
     if (this.ws && this.ws.readyState === 1) {
       try {
@@ -758,12 +790,15 @@ export default {
         translateStatusText: T.translateFinishing
       });
       if (this.stopWaitTimer) clearTimeout(this.stopWaitTimer);
+      const nowCtx = (this.audioCtx && this.audioCtx.currentTime) || 0;
+      const remMs = this.nextPlayTime > nowCtx ? Math.ceil((this.nextPlayTime - nowCtx) * 1000) + 350 : 0;
+      const waitMs = Math.max(3000, remMs);
       this.stopWaitTimer = setTimeout(() => {
         this.stopWaitTimer = null;
         if (this.turnId === myTurnId && this.liveActive) {
           this.teardownLiveSession('stop_timeout_3s');
         }
-      }, 3000);
+      }, waitMs);
     } else {
       this.teardownLiveSession(reason);
     }
@@ -773,18 +808,164 @@ export default {
     if (this.turnId !== myTurnId || !this.liveActive) return;
     const ab = toArrayBuffer(rawData);
     if (!ab || ab.byteLength < 2) return;
+    const usableBytes = ab.byteLength & ~1;
+    const sampleCount = usableBytes >> 1;
+    if (sampleCount <= 0) return;
+    const durSec = sampleCount / 24000;
+
     if (!this.pendingPlayChunks) {
       this.pendingPlayChunks = [];
     }
     if (!this.turnFirstAudioRxAt) {
       this.turnFirstAudioRxAt = Date.now();
     }
-    this.pendingPlayChunks.push(ab);
-    this.drainPendingPlayChunks(myTurnId);
+    this.lastChunkRxAt = Date.now();
+    this.turnCompletedSinceLastAudio = false;
+    this.pendingPlayChunks.push({ ab, usableBytes, sampleCount, durSec });
+    this.queuedAudioSec = (this.queuedAudioSec || 0) + durSec;
+
+    if (this.playRunActive) {
+      this.drainPendingPlayChunks(myTurnId);
+      return;
+    }
+
+    if (!this.holdStartedAt) {
+      this.holdStartedAt = Date.now();
+      console.log(
+        `[LiveTranslate] HOLD_START turn=${this.liveTurnIndex || 1} speaking=${!!this.vadSpeaking} queuedMs=${Math.round(this.queuedAudioSec * 1000)}`
+      );
+    }
+    this.evaluatePlaybackGate(myTurnId);
+  },
+
+  scheduleHoldCheck(myTurnId) {
+    if (this.holdCheckTimer) return;
+    this.holdCheckTimer = setTimeout(() => {
+      this.holdCheckTimer = null;
+      this.evaluatePlaybackGate(myTurnId);
+    }, 80);
+  },
+
+  evaluatePlaybackGate(myTurnId) {
+    if (this.turnId !== myTurnId || !this.liveActive) return;
+    const now = Date.now();
+
+    if (this.vadSpeaking && this.lastSpeechFrameAt && now - this.lastSpeechFrameAt >= VAD_HANGOVER_MS) {
+      this.vadSpeaking = false;
+      console.log(
+        `[LiveTranslate] VAD_SPEAKING state=off rms=0 peak=0 floor=${Math.round(this.vadNoiseFloor || 800)} silenceMs=${now - this.lastSpeechFrameAt}`
+      );
+    }
+
+    if (this.playRunActive) {
+      if (this.pendingPlayChunks && this.pendingPlayChunks.length > 0) {
+        this.drainPendingPlayChunks(myTurnId);
+      }
+      return;
+    }
+
+    if (!this.pendingPlayChunks || this.pendingPlayChunks.length === 0) {
+      return;
+    }
+
+    if (!this.holdStartedAt) {
+      this.holdStartedAt = now;
+    }
+
+    const heldMs = now - this.holdStartedAt;
+    const queuedMs = Math.round((this.queuedAudioSec || 0) * 1000);
+    const silenceMs = this.lastSpeechFrameAt ? now - this.lastSpeechFrameAt : 999999;
+    const notSpeaking = (!this.vadSpeaking && silenceMs >= VAD_HANGOVER_MS) || this.liveStopping;
+    const minQueueMs = (this.rebufferAfterUnderrun ? HOLD_REBUFFER_QUEUE_SEC : HOLD_MIN_QUEUE_SEC) * 1000;
+    const chunkIdleMs = this.lastChunkRxAt ? now - this.lastChunkRxAt : 0;
+    const bufferReady =
+      queuedMs >= minQueueMs ||
+      chunkIdleMs >= HOLD_CHUNK_IDLE_MS ||
+      this.turnCompletedWhileHolding ||
+      this.liveStopping;
+    const capReached = heldMs >= HOLD_SAFETY_CAP_MS;
+
+    if ((notSpeaking && bufferReady) || capReached) {
+      const releaseReason = capReached && !notSpeaking ? 'cap' : 'silence';
+      console.log(
+        `[LiveTranslate] HOLD_RELEASE reason=${releaseReason} heldMs=${heldMs} queuedMs=${queuedMs}`
+      );
+      this.playRunActive = true;
+      this.runId = (this.runId || 0) + 1;
+      this.runChunks = 0;
+      this.runDurSec = 0;
+      this.runStartedNeedsFadeIn = true;
+      this.lastRunSample = 0;
+      this.holdStartedAt = 0;
+      this.rebufferAfterUnderrun = false;
+      this.turnCompletedWhileHolding = false;
+      console.log(
+        `[LiveTranslate] RUN_START run=${this.runId} chunks=${this.pendingPlayChunks.length} queuedMs=${queuedMs}`
+      );
+      this.drainPendingPlayChunks(myTurnId);
+      return;
+    }
+
+    this.scheduleHoldCheck(myTurnId);
+  },
+
+  finishPlaybackRunIfDrained(myTurnId) {
+    if (this.turnId !== myTurnId || !this.liveActive || !this.playRunActive) return;
+    if (this.pendingPlayChunks && this.pendingPlayChunks.length > 0) {
+      this.drainPendingPlayChunks(myTurnId);
+      return;
+    }
+    const nowCtx = (this.audioCtx && this.audioCtx.currentTime) || 0;
+    if (this.nextPlayTime > nowCtx + 0.02) {
+      const remMs = Math.max(20, Math.ceil((this.nextPlayTime - nowCtx) * 1000) + 20);
+      if (this.runDrainTimer) clearTimeout(this.runDrainTimer);
+      this.runDrainTimer = setTimeout(() => {
+        this.runDrainTimer = null;
+        this.finishPlaybackRunIfDrained(myTurnId);
+      }, remMs);
+      return;
+    }
+
+    // Apply click-free 5ms tail fade-out if last sample was non-zero
+    if (this.audioCtx && Math.abs(this.lastRunSample || 0) > 0.001) {
+      try {
+        const srcRate = 24000;
+        const tailBuf = this.audioCtx.createBuffer(1, FADE_SAMPLES_24K, srcRate);
+        const tailF32 = new Float32Array(FADE_SAMPLES_24K);
+        const s0 = this.lastRunSample;
+        for (let i = 0; i < FADE_SAMPLES_24K; i++) {
+          tailF32[i] = s0 * (1 - (i + 1) / FADE_SAMPLES_24K);
+        }
+        tailBuf.copyToChannel(tailF32, 0);
+        const tailSrc = this.audioCtx.createBufferSource();
+        tailSrc.buffer = tailBuf;
+        tailSrc.connect(this.audioCtx.destination);
+        tailSrc.start(Math.max(nowCtx, this.nextPlayTime || nowCtx));
+      } catch (_) {}
+      this.lastRunSample = 0;
+    }
+
+    const durMs = Math.round((this.runDurSec || 0) * 1000);
+    const hadUnderrun = !this.turnCompletedSinceLastAudio && !this.liveStopping;
+    if (hadUnderrun) {
+      console.log(`[LiveTranslate] UNDERRUN run=${this.runId} chunks=${this.runChunks} durMs=${durMs}`);
+      this.rebufferAfterUnderrun = true;
+    }
+    console.log(`[LiveTranslate] RUN_END run=${this.runId} chunks=${this.runChunks} durMs=${durMs}`);
+    this.playRunActive = false;
+
+    if (!this.liveStopping) {
+      this.setData({
+        statusBadge: 'LIVE',
+        translateStatusText: T.translateActive
+      });
+    } else if (this.turnCompletedSinceLastOutput) {
+      this.teardownLiveSession('turn_complete_after_stop');
+    }
   },
 
   drainPendingPlayChunks(myTurnId) {
-    if (this.turnId !== myTurnId || !this.liveActive) return;
+    if (this.turnId !== myTurnId || !this.liveActive || !this.playRunActive) return;
     if (!this.pendingPlayChunks || this.pendingPlayChunks.length === 0) return;
 
     try {
@@ -796,15 +977,43 @@ export default {
       }
 
       while (this.pendingPlayChunks.length > 0) {
-        const ab = this.pendingPlayChunks.shift();
-        const usableBytes = ab.byteLength & ~1;
-        const sampleCount = usableBytes >> 1;
+        const item = this.pendingPlayChunks.shift();
+        const ab = item.ab || item;
+        const usableBytes = item.usableBytes || (ab.byteLength & ~1);
+        const sampleCount = item.sampleCount || (usableBytes >> 1);
+        const itemDurSec = item.durSec || sampleCount / 24000;
+        this.queuedAudioSec = Math.max(0, (this.queuedAudioSec || 0) - itemDurSec);
         if (sampleCount <= 0) continue;
 
         const view = new DataView(ab, 0, usableBytes);
         const f32 = new Float32Array(sampleCount);
         for (let i = 0; i < sampleCount; i++) {
           f32[i] = view.getInt16(i * 2, true) / 32768.0;
+        }
+
+        // P4: 5ms linear fade-in at run start boundary ONLY
+        if (this.runStartedNeedsFadeIn) {
+          const fadeInLen = Math.min(FADE_SAMPLES_24K, sampleCount);
+          for (let i = 0; i < fadeInLen; i++) {
+            f32[i] *= i / fadeInLen;
+          }
+          this.runStartedNeedsFadeIn = false;
+        }
+
+        // P4: 5ms linear fade-out at run end boundary ONLY (never between contiguous chunks)
+        const isKnownFinalChunk =
+          this.pendingPlayChunks.length === 0 &&
+          (this.turnCompletedSinceLastAudio ||
+            this.liveStopping ||
+            (this.lastChunkRxAt && Date.now() - this.lastChunkRxAt >= HOLD_CHUNK_IDLE_MS));
+        if (isKnownFinalChunk) {
+          const fadeOutLen = Math.min(FADE_SAMPLES_24K, sampleCount);
+          for (let i = 0; i < fadeOutLen; i++) {
+            f32[sampleCount - 1 - i] *= i / fadeOutLen;
+          }
+          this.lastRunSample = 0;
+        } else {
+          this.lastRunSample = f32[sampleCount - 1] || 0;
         }
 
         const srcRate = 24000;
@@ -830,7 +1039,10 @@ export default {
         }
 
         const curCtx = this.audioCtx.currentTime || 0;
-        const startAt = Math.max(curCtx + 0.015, this.nextPlayTime || 0);
+        const startAt =
+          this.runChunks === 0
+            ? Math.max(curCtx + 0.02, this.nextPlayTime || 0)
+            : Math.max(curCtx + 0.002, this.nextPlayTime || 0);
         const source = this.audioCtx.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(this.audioCtx.destination);
@@ -839,6 +1051,8 @@ export default {
         this.nextPlayTime = startAt + audioBuffer.duration;
         const remainingMs = Math.max(0, Math.ceil((this.nextPlayTime - curCtx) * 1000));
         this.echoMuteUntilMs = Date.now() + remainingMs + 300;
+        this.runChunks = (this.runChunks || 0) + 1;
+        this.runDurSec = (this.runDurSec || 0) + audioBuffer.duration;
         this.rxAudioChunks = (this.rxAudioChunks || 0) + 1;
         this.rxAudioBytes = (this.rxAudioBytes || 0) + usableBytes;
 
@@ -866,17 +1080,13 @@ export default {
           translateStatusText: T.translateSpeaking
         });
       }
-      if (this.speakingBadgeTimer) {
-        clearTimeout(this.speakingBadgeTimer);
+      if (this.runDrainTimer) {
+        clearTimeout(this.runDrainTimer);
       }
-      this.speakingBadgeTimer = setTimeout(() => {
-        this.speakingBadgeTimer = null;
-        if (this.turnId !== myTurnId || !this.liveActive || this.liveStopping) return;
-        this.setData({
-          statusBadge: 'LIVE',
-          translateStatusText: T.translateActive
-        });
-      }, totalRemMs + 300);
+      this.runDrainTimer = setTimeout(() => {
+        this.runDrainTimer = null;
+        this.finishPlaybackRunIfDrained(myTurnId);
+      }, totalRemMs + 30);
     } catch (err) {
       console.warn('[LiveTranslate] AudioContext playback error:', err && err.message ? err.message : err);
     }
@@ -906,6 +1116,21 @@ export default {
     this.nextPlayTime = 0;
     this.echoMuteUntilMs = 0;
     this.pendingPlayChunks = [];
+    this.queuedAudioSec = 0;
+    this.holdStartedAt = 0;
+    this.lastChunkRxAt = 0;
+    this.playRunActive = false;
+    this.runId = 0;
+    this.runChunks = 0;
+    this.runDurSec = 0;
+    this.runStartedNeedsFadeIn = false;
+    this.lastRunSample = 0;
+    this.rebufferAfterUnderrun = false;
+    this.turnCompletedWhileHolding = false;
+    this.turnCompletedSinceLastAudio = false;
+    this.vadNoiseFloor = 800;
+    this.vadSpeaking = false;
+    this.lastSpeechFrameAt = 0;
     this.lastLoggedMute = false;
     this.liveInputBuffer = '';
     this.liveOutputBuffer = '';
@@ -1030,26 +1255,58 @@ export default {
             if (this.turnId !== myTurnId || !this.liveActive || this.liveStopping) return;
             if (!this.ws || this.ws.readyState !== 1) return;
 
-            const isEchoMuted = false;
-            const processed = processMicWavChunk(ab, false, 0.7);
+            // Half-duplex echo control: playback only starts after the speaker has stopped
+            // (hold-while-speaking), so muting the uplink during our own playback cannot split
+            // the speaker's sentence, and it prevents the model from re-hearing (and mis-translating)
+            // the glasses' own English output.
+            const playbackRunning =
+              this.playRunActive ||
+              !!(this.audioCtx && this.nextPlayTime && this.audioCtx.currentTime < this.nextPlayTime + 0.3);
+            const isEchoMuted = playbackRunning;
+            const processed = processMicWavChunk(ab, isEchoMuted, 0.7);
             if (!processed) return;
 
             this.ws.send(processed.buffer);
             this.txChunks = (this.txChunks || 0) + 1;
             this.txBytes = (this.txBytes || 0) + processed.buffer.byteLength;
 
-            if (processed.peak > 9500) {
-              this.lastSpeechPeakAt = Date.now();
-              if (!this.turnVoiceStartAt) {
-                this.turnVoiceStartAt = Date.now();
-                console.log(`[LiveTranslate] VOICE_START turn=${this.liveTurnIndex} chunk=${this.txChunks} peak=${processed.peak}`);
+            const nowMs = Date.now();
+
+            if (!playbackRunning) {
+              const dynRmsThresh = Math.max(Math.round((this.vadNoiseFloor || 800) * 3), VAD_RMS_MIN);
+              const isSpeechFrame = processed.rms > dynRmsThresh || processed.peak > VAD_PEAK_THRESHOLD;
+              if (isSpeechFrame) {
+                this.lastSpeechFrameAt = nowMs;
+                this.lastSpeechPeakAt = nowMs;
+                if (!this.turnVoiceStartAt) {
+                  this.turnVoiceStartAt = nowMs;
+                  console.log(`[LiveTranslate] VOICE_START turn=${this.liveTurnIndex} chunk=${this.txChunks} peak=${processed.peak}`);
+                }
+                if (!this.vadSpeaking) {
+                  this.vadSpeaking = true;
+                  console.log(
+                    `[LiveTranslate] VAD_SPEAKING state=on rms=${processed.rms} peak=${processed.peak} floor=${Math.round(this.vadNoiseFloor || 800)}`
+                  );
+                }
+              } else {
+                this.vadNoiseFloor = Math.max(
+                  250,
+                  Math.min(2500, (this.vadNoiseFloor || 800) * 0.92 + processed.rms * 0.08)
+                );
+                if (this.vadSpeaking && this.lastSpeechFrameAt && nowMs - this.lastSpeechFrameAt >= VAD_HANGOVER_MS) {
+                  this.vadSpeaking = false;
+                  console.log(
+                    `[LiveTranslate] VAD_SPEAKING state=off rms=${processed.rms} peak=${processed.peak} floor=${Math.round(this.vadNoiseFloor)} silenceMs=${nowMs - this.lastSpeechFrameAt}`
+                  );
+                  this.evaluatePlaybackGate(myTurnId);
+                }
               }
             }
 
             if (this.txChunks === 1 || this.txChunks % 10 === 0 || isEchoMuted !== this.lastLoggedMute) {
               this.lastLoggedMute = isEchoMuted;
               console.log(
-                `[LiveTranslate] TX_PCM chunk=${this.txChunks} bytes=${processed.buffer.byteLength} totalBytes=${this.txBytes} peak=${processed.peak} echoMuted=${isEchoMuted}`
+                `[LiveTranslate] TX_PCM chunk=${this.txChunks} bytes=${processed.buffer.byteLength} totalBytes=${this.txBytes} peak=${processed.peak} rms=${processed.rms} echoMuted=${isEchoMuted}`
               );
             }
           } catch (chunkErr) {
@@ -1152,6 +1409,7 @@ export default {
           this.liveTurnIndex = completedTurn + 1;
           this.turnCompletedSinceLastInput = true;
           this.turnCompletedSinceLastOutput = true;
+          this.turnCompletedSinceLastAudio = true;
           this.turnFirstAudioLogged = false;
           this.turnFirstAudioRxAt = 0;
           this.turnVoiceStartAt = 0;
@@ -1159,7 +1417,12 @@ export default {
           console.log(
             `[LiveTranslate] RX_TURN_COMPLETE turn=${completedTurn} stopping=${!!this.liveStopping} in=${JSON.stringify(this.liveInputBuffer)} out=${JSON.stringify(this.liveOutputBuffer)}`
           );
+          if (!this.playRunActive && this.pendingPlayChunks && this.pendingPlayChunks.length > 0) {
+            this.turnCompletedWhileHolding = true;
+            this.evaluatePlaybackGate(myTurnId);
+          }
           if (this.liveStopping) {
+            this.evaluatePlaybackGate(myTurnId);
             if (this.stopWaitTimer) {
               clearTimeout(this.stopWaitTimer);
               this.stopWaitTimer = null;
@@ -1167,7 +1430,7 @@ export default {
             const nowCtx = (this.audioCtx && this.audioCtx.currentTime) || 0;
             const remAudioMs =
               this.nextPlayTime > nowCtx
-                ? Math.min(2000, Math.ceil((this.nextPlayTime - nowCtx) * 1000) + 120)
+                ? Math.min(4000, Math.ceil((this.nextPlayTime - nowCtx) * 1000) + 150)
                 : 0;
             if (remAudioMs > 50) {
               this.stopWaitTimer = setTimeout(() => {
