@@ -12,11 +12,15 @@ Automates packaging and uploading `.aix`, `cache.zip` (following Studio's strict
   # Or target a single demo:
   node scripts/studio_upload.mjs --dry-run --demo 1
   node scripts/studio_upload.mjs --dry-run --demo 2
+  # Preview creating a brand-new Studio agent:
+  node scripts/studio_upload.mjs --create --demo 2 --dry-run
   ```
 
 - **Live upload & save mode (only when explicitly approved)**:
   ```bash
   node scripts/studio_upload.mjs --execute
+  # Create a brand-new Studio agent, upload OSS assets, and updateThirdAgent:
+  node scripts/studio_upload.mjs --create --demo 2 --execute
   ```
 
 ### Review Submission Endpoints (Reference Only — Not Called Automatically)

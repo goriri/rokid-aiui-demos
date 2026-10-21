@@ -1,7 +1,7 @@
 {
-  "agentName": "GCP Multimodal Agent",
-  "agentDesc": "Google Cloud Vertex AI assistant for Rokid Glasses monochrome-green HUD, featuring camera vision Q&A, real-time speech-to-speech translation into English with Gemini Live, and a cloud node status board.",
-  "agentPrompt": "Hello, I am the GCP Multimodal Agent. Tap the temple to capture a photo for Vertex AI vision analysis or switch to Live Translate for real-time speech-to-speech translation into English with Gemini Live.",
+  "agentName": "GCP Live Translator",
+  "agentDesc": "Real-time speech-to-speech translator into English for Rokid Glasses monochrome-green HUD. Powered by Gemini Live on Google Cloud, it auto-detects source languages, translates all nearby speech into spoken English with on-HUD bilingual transcripts, and includes Gemini 4 camera vision Q&A plus a cloud status console.",
+  "agentPrompt": "Hello! I am GCP Live Translator. Start Live Translate to stream nearby speech for real-time spoken English and HUD transcripts, or tap the temple in Vision mode to analyze a scene.",
   "agentLogo": "assets/icon.png",
   "logo": "assets/icon.png",
   "version": "1.0.10",
@@ -23,8 +23,8 @@
     "pages/index/index"
   ],
   "window": {
-    "navigationBarTitleText": "GCP Multimodal Agent",
-    "defaultTitle": "GCP Multimodal Agent",
+    "navigationBarTitleText": "GCP Live Translator",
+    "defaultTitle": "GCP Live Translator",
     "backgroundTextStyle": "dark"
   }
 }

@@ -1,22 +1,22 @@
 /**
- * Rokid Glasses AIUI Agent - Google Cloud AI Multimodal Agent Lifecycle
+ * Rokid Glasses AIUI Agent - GCP Live Translator Lifecycle
  */
 export default {
   onLaunch() {
-    console.log('[AIUI GCP App] Rokid GCP Multimodal Agent Launched');
+    console.log('[AIUI GCP App] Rokid GCP Live Translator Launched');
   },
   onShow() {
-    console.log('[AIUI GCP App] Rokid GCP Multimodal Agent Foreground');
+    console.log('[AIUI GCP App] Rokid GCP Live Translator Foreground');
   },
   onHide() {
-    console.log('[AIUI GCP App] Rokid GCP Multimodal Agent Background');
+    console.log('[AIUI GCP App] Rokid GCP Live Translator Background');
   },
   onError(error) {
     console.error('[AIUI GCP App] Runtime Error:', error);
   },
   globalData: {
-    agentName: 'GCP Multimodal Agent',
-    version: '1.0.0',
+    agentName: 'GCP Live Translator',
+    version: '1.0.10',
     deviceType: 'RokidGlasses',
     viewport: {
       width: 480,

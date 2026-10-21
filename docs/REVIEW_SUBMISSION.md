@@ -104,6 +104,35 @@ This document provides the exact metadata, permission purpose strings, network/d
 
 ---
 
+## Agent 3: GCP Live Translator (`02-rokid-gcp-multimodal-agent`, v1.0.10)
+
+### 1. Basic Metadata (`基础信息`)
+
+| Studio Form Field (`构建与提审字段`) | Value (Exact Match with `app.json`) | Notes / Constraints |
+| :--- | :--- | :--- |
+| **Studio Agent ID (`agentId`)** | `48c2e202270c469886dde77ef1ecc936` | Created via `saveAIUIAgent` (`--create`) |
+| **Agent Name (`智能体名称` / `agentName`)** | `GCP Live Translator` | 19 chars (`<= 20` chars; no `test`/`beta`) |
+| **Category (`分类` / `category`)** | `work` (`工作`) | Real-time speech-to-speech translation & vision |
+| **Version (`版本号` / `nativeVersion`)** | `1.0.10` (`reviewNativeVersion`: `1.0.2`) | SemVer |
+| **Engine Requirement (`引擎版本` / `engine`)** | `>=0.18.0` | Packaged with `@yodaos-pkg/aix-cli@0.10.1` |
+| **Icon (`应用图标` / `agentLogo`)** | `demos/02-rokid-gcp-multimodal-agent/assets/icon.png` | 512×512 PNG bundled at `assets/icon.png` |
+| **Packaged `.aix` (`安装包路径`)** | `demos/02-rokid-gcp-multimodal-agent/dist/rokid-gcp-multimodal-agent.aix` | Optimized `.aix` archive (`md5=cfa2c4c3d9bd6e85a929d48c60098230`) |
+
+- **Description (`智能体简介` / `agentDesc`, 318 chars, `<= 500` chars, truthful, no absolute claims)**:
+  > Real-time speech-to-speech translator into English for Rokid Glasses monochrome-green HUD. Powered by Gemini Live on Google Cloud, it auto-detects source languages, translates all nearby speech into spoken English with on-HUD bilingual transcripts, and includes Gemini 4 camera vision Q&A plus a cloud status console.
+
+- **Opening Greeting (`开场白` / `agentPrompt`, 185 chars, `<= 300` chars, distinct from description)**:
+  > Hello! I am GCP Live Translator. Start Live Translate to stream nearby speech for real-time spoken English and HUD transcripts, or tap the temple in Vision mode to analyze a scene.
+
+### 2. Permissions & Purpose Strings (`权限声明与用途说明`)
+
+| Permission (`权限名`) | Purpose String (`权限用途说明`) | Code Call Site |
+| :--- | :--- | :--- |
+| `RECORD_AUDIO` | Streams nearby speech to Google Cloud Gemini Live for real-time speech-to-speech translation into spoken English and on-HUD bilingual transcripts. | `pages/index/index.ink` (`startLiveTranslation`) |
+| `CAMERA` | Captures a single scene photo (`wx.media.createCameraContext().takePhoto`) only when the user taps the temple in `VISION` mode for Gemini 4 visual Q&A. | `pages/index/index.ink` (`triggerCameraAndGemini`) |
+
+---
+
 ## Pre-Submission Checklist (`提审前自检清单`)
 
 - [x] **Naming & Copy Compliance**: Both `agentName` values are `<= 20` characters (`Vision Voice Copilot`, `GCP Multimodal Agent`), contain no `test`/`beta` markers, and have distinct `agentDesc` (`<= 500` chars, no `100%`/`best` claims) and `agentPrompt` (`<= 300` chars).
@@ -123,5 +152,6 @@ This document provides the exact metadata, permission purpose strings, network/d
 | :--- | :--- | :--- | :--- | :--- |
 | **Demo 1 (`Vision Voice Copilot`)** | `059b26f3ffcd47ab8280a2d176b0f88a` | `1.0.9` | `2026-10-21` | `checking` |
 | **Demo 2 (`GCP Multimodal Agent`)** | `68e11a45486e4b279704e1e3c43b4b4b` | `1.0.8` | `2026-10-21` | `checking` |
+| **Demo 2 (`GCP Live Translator`, v1.0.10)** | `48c2e202270c469886dde77ef1ecc936` | `1.0.2` | `2026-10-21` | `checking` |
 
 > **Note on `nativeVersion` Auto-Increment**: The Rokid AIUI Studio backend (`metis/agent/updateThirdAgent`) automatically increments `nativeVersion` by `+0.0.1` on every save call. Before uploading a new release, bump `version` in `app.json` above the current Studio version and invoke `updateThirdAgent` only once per release before calling `cozePublish`.

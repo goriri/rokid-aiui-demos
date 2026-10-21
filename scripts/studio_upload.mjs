@@ -71,10 +71,12 @@ const DEMOS = [
     category: 'work',
     categoryName: '工作',
     versionLogSuffix:
-      'Global Studio release of GCP Multimodal Agent for Rokid Glasses 480x352 monochrome-green HUD with Vertex AI Gemini vision Q&A, Cloud Translation bilingual subtitles, and Cloud Run health telemetry.',
+      'Real-time speech-to-speech translation into English via Google Cloud Gemini Live with auto source language detection, spoken English output, on-HUD bilingual transcripts, and Gemini 4 camera vision Q&A.',
     permissionPurposes: {
       CAMERA:
-        'Used when the user taps the temple in GEMINI vision mode to capture a scene photo (wx.media.createCameraContext().takePhoto) for Vertex AI Gemini multimodal scene analysis.'
+        'Captures a single scene photo (wx.media.createCameraContext().takePhoto) only when the user taps the temple in VISION mode for Gemini 4 visual Q&A.',
+      RECORD_AUDIO:
+        'Streams nearby speech to Google Cloud Gemini Live for real-time speech-to-speech translation into spoken English and on-HUD bilingual transcripts.'
     },
     reviewMediaRelPaths: [
       { type: 'video', relPath: 'assets/review/demo.mp4' },
@@ -94,22 +96,46 @@ const PERMISSION_DESC_KEY_MAP = {
   ROKID_ACCOUNT: 'accountDesc'
 };
 
+const DEFAULT_AGENT_ICON_URL =
+  'https://basecloud.rokidcdn.com/basecloud/prod/coze/default_agent_icon.png';
+
+function buildCreateAgentPayload(agentName) {
+  return {
+    agentName,
+    description: '',
+    icon: DEFAULT_AGENT_ICON_URL,
+    nativeVersion: '1.0.0',
+    filePath: '',
+    fileMd5: '',
+    permissions: '',
+    cutParamStr: '',
+    modelVendor: 'native',
+    category: '',
+    needUserAgree: 0,
+    codeFilePath: '',
+    codeFileMd5: ''
+  };
+}
+
 function parseArgs(argv) {
   let dryRun = true;
   let demoFilter = 'all';
+  let createMode = false;
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--dry-run') {
       dryRun = true;
     } else if (arg === '--execute' || arg === '--no-dry-run') {
       dryRun = false;
+    } else if (arg === '--create') {
+      createMode = true;
     } else if (arg === '--demo' && argv[i + 1]) {
       demoFilter = argv[++i];
     } else if (arg.startsWith('--demo=')) {
       demoFilter = arg.slice('--demo='.length);
     }
   }
-  return { dryRun, demoFilter };
+  return { dryRun, demoFilter, createMode };
 }
 
 function loadEnv(envPath) {
@@ -310,13 +336,15 @@ async function putOssObject(sts, objectKey, buffer, contentType, fileNameForDisp
 }
 
 async function main() {
-  const { dryRun, demoFilter } = parseArgs(process.argv);
+  const { dryRun, demoFilter, createMode } = parseArgs(process.argv);
   const env = loadEnv(path.join(REPO_ROOT, '.env'));
   if (!env.ROKID_ACCOUNT || !env.ROKID_PASSWORD) {
     throw new Error('ROKID_ACCOUNT and ROKID_PASSWORD must be set in .env');
   }
 
-  console.log(`[StudioUpload] Mode: ${dryRun ? 'DRY-RUN (no mutations)' : 'EXECUTE (live upload & save)'}`);
+  console.log(
+    `[StudioUpload] Mode: ${dryRun ? 'DRY-RUN (no mutations)' : 'EXECUTE (live upload & save)'}${createMode ? ' [CREATE NEW AGENT]' : ''}`
+  );
   const loginResult = await rokidLogin(env.ROKID_ACCOUNT, env.ROKID_PASSWORD);
   console.log(`[StudioUpload] Login: SUCCESS (HTTP ${loginResult.status}, token=<REDACTED>)`);
 
@@ -338,17 +366,72 @@ async function main() {
   const baseDir = sts.directory.replace(/\/+$/, '');
 
   for (const demo of selectedDemos) {
-    const cloudAgent = existingAgents.find(
-      (a) => a.agentId === demo.agentId || demo.legacyNames.includes(a.agentName)
-    );
-    if (!cloudAgent) {
-      throw new Error(`Could not find existing cloud agent for demo ${demo.slug} (${demo.agentId})`);
-    }
-
     const { aixShow, jsuiTitle, jsuiVersion, jsuiPages, jsuiTools } = readAixMetadata(
       demo.demoDir,
       demo.aixRelPath
     );
+
+    let cloudAgent = null;
+    if (createMode) {
+      cloudAgent = existingAgents.find((a) => a.agentName === aixShow.agentName) || null;
+      if (!cloudAgent) {
+        const createPayload = buildCreateAgentPayload(aixShow.agentName);
+        console.log(`  Planned POST ${ENDPOINTS.saveAIUIAgent} (create new agent "${aixShow.agentName}"):`);
+        console.log(
+          JSON.stringify(
+            redactObject({
+              headers: { 'Content-Type': 'application/json', access_token: '<REDACTED>' },
+              body: createPayload
+            }),
+            null,
+            2
+          )
+        );
+        if (dryRun) {
+          cloudAgent = {
+            agentId: '00000000000000000000000000000000',
+            thirdAgentId: '00000000000000000000000000000000',
+            agentName: aixShow.agentName,
+            status: -1,
+            displayStatus: 'draft',
+            category: demo.category,
+            codeFilePath: ''
+          };
+        } else {
+          const createRes = await fetch(ENDPOINTS.saveAIUIAgent, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', access_token: loginResult.token },
+            body: JSON.stringify(createPayload)
+          });
+          const createJson = await createRes.json();
+          const newAgentId = createJson?.data?.agentId?.trim();
+          if (!createRes.ok || (createJson?.code !== 0 && createJson?.code !== 1) || !newAgentId) {
+            throw new Error(
+              `Create agent via saveAIUIAgent failed: HTTP ${createRes.status}, ${JSON.stringify(createJson)}`
+            );
+          }
+          console.log(`  [LIVE] Created new agent via saveAIUIAgent: agentId=${newAgentId}`);
+          cloudAgent = {
+            agentId: newAgentId,
+            thirdAgentId: newAgentId,
+            agentName: aixShow.agentName,
+            status: -1,
+            displayStatus: 'draft',
+            category: demo.category,
+            codeFilePath: ''
+          };
+        }
+      } else {
+        console.log(`  [CreateMode] Found existing agent matching "${aixShow.agentName}": ${cloudAgent.agentId}`);
+      }
+    } else {
+      cloudAgent = existingAgents.find(
+        (a) => a.agentId === demo.agentId || demo.legacyNames.includes(a.agentName)
+      );
+      if (!cloudAgent) {
+        throw new Error(`Could not find existing cloud agent for demo ${demo.slug} (${demo.agentId})`);
+      }
+    }
 
     const aixAbsPath = path.join(demo.demoDir, demo.aixRelPath);
     const aixBuf = fs.readFileSync(aixAbsPath);
