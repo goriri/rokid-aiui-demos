@@ -51,7 +51,7 @@ rokid-aiui-demos/
 ```
 
 > 📖 **Engineering & Review Documentation**:
-> - [Rokid AIUI End-to-End Lifecycle Skill (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md): Covers AIUI 0.18 spec compliance, ADB on-device deployment, omnidirectional mic capture & WebSocket audio streaming, synchronized AV recording, Vertex AI Global model integration, and AIUI Studio submission.
+> - [Rokid AIUI End-to-End Lifecycle Skill (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md): Covers AIUI 0.18 spec compliance, ADB on-device deployment, far-field mic capture & WebSocket audio streaming, synchronized AV recording, Vertex AI Global model integration, and AIUI Studio submission.
 > - [Rokid AIUI Studio Review & Submission Kit (`REVIEW_SUBMISSION.md`)](docs/REVIEW_SUBMISSION.md): Exact submission metadata, permission purpose strings, network/data disclosures, and current Studio review status for `GCP Live Translator` (current source of truth) and the two earlier submitted agents.
 > - [Rokid AIUI Development, Testing, Packaging & Deployment Guide](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md): Gemini Live WebSocket translation relay protocol, `cache.zip` regex validation rules, and Cloud Run tagged no-traffic revision deployment.
 
@@ -110,8 +110,8 @@ Integrates **Google Cloud Vertex AI** real-time speech-to-speech translation (**
 
 #### Core Capabilities:
 1. **Real Speech-to-Speech Translation with Gemini Live (`LIVE TRANSLATE` Mode)**:
-   - **End-to-End Audio Pipeline**: Glasses microphone (`navigator.mediaDevices.getUserMedia` with `microphoneMode: 'omnidirectional'`, 16 kHz mono PCM16 extracted from `MediaRecorder` `audio/wav` chunks with `0.7` gain clamping) → authenticated WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`** (auto source language detection → English) → **24 kHz PCM** translated speech playback (`AudioContext.createBuffer(1, n, 24000)`) + live source (`input_transcript` with detected language badge) and target (`output_transcript`) subtitles on the HUD;
-   - **Echo Control**: Uplink is muted (sending zero-filled PCM frames to preserve stream timing) while translated audio playback is running (`nextPlayTime + 300ms`), preventing the omnidirectional microphone from picking up the glasses speaker;
+   - **End-to-End Audio Pipeline**: Glasses microphone (`navigator.mediaDevices.getUserMedia` with `microphoneMode: 'far-field'`, 16 kHz mono PCM16 extracted from `MediaRecorder` `audio/wav` chunks with `0.7` gain clamping) → authenticated WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`** (auto source language detection → English) → **24 kHz PCM** translated speech playback (`AudioContext.createBuffer(1, n, 24000)`) + live source (`input_transcript` with detected language badge) and target (`output_transcript`) subtitles on the HUD;
+   - **Capture & Echo**: `far-field` beamforming focuses on the speaker in front and suppresses side-room chatter and the temple speakers (measured ambient peaks dropped from 16k–23k to 0–7.7k). The uplink always carries real mic audio (no muting), and `echoTargetLanguage=false` means English echo is never re-translated;
    - **Session Lifecycle & No Sample Fallback**: Temple tap starts/stops the live session with an automatic stop at **4:50 (`290s`)** under the 5:00 server cap. The sample-sentence / text-translate path is completely removed; errors surface an explicit `LIVE TRANSLATION UNAVAILABLE · <reason>` status.
 2. **Vertex AI Gemini 4 (`gemini-4-argon`) Spatial Vision Q&A (`GEMINI 4 LIVE` Mode)**:
    - A temple tap captures a photo from the front camera (`CameraContext.takePhoto({ quality: 'normal' })` with a **12s timeout**) and sends it via Cloud Run `/api/gemini` to **Vertex AI Global `gemini-4-argon`** for live scene analysis and spoken feedback;
@@ -120,7 +120,7 @@ Integrates **Google Cloud Vertex AI** real-time speech-to-speech translation (**
    - Monitors the Cloud Run relay `/health` endpoint, Rokid Metis authentication status, project ID, and Vertex AI `gemini-4-argon` / `gemini-3.5-live-translate-preview` connectivity.
 
 #### Known Limits:
-- **Translates All Nearby Speech**: Because `microphoneMode: 'omnidirectional'` is required to capture speakers in front of the wearer, it translates **all nearby speech** (including room chatter or background speakers);
+- **Nearby Speech**: `far-field` focuses on the person in front, but loud or frontal bystander speech can still be translated; works best in a quiet setting facing the speaker (falls back to `omnidirectional` if `far-field` is unsupported);
 - **Network Connectivity Required**: Requires an active **phone companion Bluetooth data link** or **Wi-Fi** connection to reach the Cloud Run relay;
 - **First-Audio Latency**: Typical first-audio end-to-end latency over the Bluetooth companion link is **~4s** (~3s upstream Gemini Live generation + Bluetooth/WebSocket transit).
 
@@ -158,10 +158,10 @@ sequenceDiagram
         GCP-->>Proxy: Scene analysis text
         Proxy-->>Agent: 480x352 HUD response + TTS readback
     else Mode 2: LIVE TRANSLATE Speech-to-Speech (4:50 auto-stop)
-        User->>Agent: Temple tap starts omnidirectional mic (16kHz PCM16)
+        User->>Agent: Temple tap starts far-field mic (16kHz PCM16)
         Agent->>Proxy: WSS /ws/live-translate?token=<Bearer>&target=en
         Proxy->>GCP: BidiGenerateContent setup (gemini-3.5-live-translate-preview)
-        loop Bidirectional stream (uplink muted during playback for echo control)
+        loop Bidirectional stream (uplink always carries real mic audio)
             Agent->>Proxy: Binary 16kHz PCM16 audio chunks
             Proxy->>GCP: realtimeInput.audio (audio/pcm;rate=16000)
             GCP-->>Proxy: 24kHz English speech chunks + source/target transcripts

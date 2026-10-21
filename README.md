@@ -51,7 +51,7 @@ rokid-aiui-demos/
 ```
 
 > 📖 **完整工程与提审文档**:
-> - [Rokid AIUI 端到端生命周期运维技能 (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md)：涵盖 AIUI 0.18 规范检查、ADB 真机直装、全向麦拾音与 WebSocket 音频流、真机音画同步内录、Vertex AI Global 模型接入与 Studio 提审全流程。
+> - [Rokid AIUI 端到端生命周期运维技能 (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md)：涵盖 AIUI 0.18 规范检查、ADB 真机直装、far-field 前向拾音与 WebSocket 音频流、真机音画同步内录、Vertex AI Global 模型接入与 Studio 提审全流程。
 > - [Rokid AIUI Studio 构建与提审手册 (`REVIEW_SUBMISSION.md`)](docs/REVIEW_SUBMISSION.md)：包含 `GCP Live Translator`（主线最新）等三个智能体的精确提审元数据、权限用途、数据披露与当前线上审核状态。
 > - [Rokid AIUI 智能体开发、测试、打包与部署全流程工程指南](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md)：涵盖 Gemini Live WebSocket 同传中继协议、`cache.zip` 正则校验防坑与 Cloud Run 无流量标签灰度发布。
 
@@ -110,8 +110,8 @@ rokid-aiui-demos/
 
 #### 核心能力：
 1. **Gemini Live 实时语音到语音同传（`LIVE TRANSLATE` Mode）**：
-   - **数据链路**：眼镜全向麦克风（`navigator.mediaDevices.getUserMedia` 配置 `microphoneMode: 'omnidirectional'`，通过 `MediaRecorder` `audio/wav` 提取 16 kHz 单声道 PCM16 分片，`0.7` 增益限幅）→ 鉴权 WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`**（自动识别源语言 → 英语）→ 下行 **24 kHz PCM** 英文同传语音（通过 `AudioContext.createBuffer(1, n, 24000)` 无缝排期播放）+ HUD 实时双语字幕（`input_transcript` 附带检测到的源语言标签 + `output_transcript` 英文字幕）；
-   - **回声抑制（Echo Control）**：在播报 24 kHz 翻译音频期间（含播完后 300 ms 缓冲），上行自动静音并发送全零 PCM 帧，保持流时序不断连的同时防止全向麦把眼镜扬声器声音再次录回；
+   - **数据链路**：眼镜前向远场麦克风（`navigator.mediaDevices.getUserMedia` 配置 `microphoneMode: 'far-field'`，通过 `MediaRecorder` `audio/wav` 提取 16 kHz 单声道 PCM16 分片，`0.7` 增益限幅）→ 鉴权 WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`**（自动识别源语言 → 英语）→ 下行 **24 kHz PCM** 英文同传语音（通过 `AudioContext.createBuffer(1, n, 24000)` 无缝排期播放）+ HUD 实时双语字幕（`input_transcript` 附带检测到的源语言标签 + `output_transcript` 英文字幕）；
+   - **拾音与回声**：`far-field` 波束成形聚焦正前方说话人，抑制两侧环境人声与镜腿扬声器（实测环境峰值从 16k–23k 降至 0–7.7k）；上行始终发送真实麦克风音频（不再静音），且 `echoTargetLanguage=false`，英文回声不会被再次翻译；
    - **会话控制與零示例兜底**：镜腿轻拍开始/停止同传；单次会话在 **4:50（290s）** 自动优雅停止（低于服务端 5:00 上限）；已彻底移除固定示例句与文本翻译降级路径，网络或鉴权异常时明确显示 `LIVE TRANSLATION UNAVAILABLE · <reason>`。
 2. **Vertex AI Gemini 4 (`gemini-4-argon`) 实拍视觉问答（`GEMINI 4 LIVE` Mode）**：
    - 镜腿轻拍触发 `CameraContext.takePhoto({ quality: 'normal' })`（**12 秒超时**），将实拍画面经由 Cloud Run `/api/gemini` 发送至 **Vertex AI Global `gemini-4-argon`** 进行空间场景解析与语音播报；
@@ -120,7 +120,7 @@ rokid-aiui-demos/
    - 实时探测 Cloud Run 代理网关 `/health` 状态、Rokid Metis 鉴权状态、GCP 项目信息与 Vertex AI 节点连通性。
 
 #### 已知限制 (Known Limits)：
-- **全向拾音范围**：`omnidirectional` 模式会拾取并翻译眼镜周围的**所有环境人声**（包括旁人交谈或背景广播），建议在相对安静或离说话人较近的场景使用；
+- **拾音范围**：`far-field` 模式聚焦正前方说话人，但正前方或较响的旁人语音仍可能被一并翻译，建议在相对安静、正对说话人的场景使用（若设备不支持 far-field 自动回退 `omnidirectional`）；
 - **网络链路依赖**：眼镜端需保持**手机伴侣 App 蓝牙数据通道**连接或已配置 **Wi-Fi** 方可访问 Cloud Run；
 - **首包语音延迟**：经由手机蓝牙代理转发时，端到端首包同传语音延迟约为 **~4 秒**（含上游 Gemini Live 推理与蓝牙链路传输）。
 
@@ -158,10 +158,10 @@ sequenceDiagram
         GCP-->>Proxy: 场景解析文本
         Proxy-->>Agent: 480x352 HUD 响应 + TTS 播报
     else 模式二：LIVE TRANSLATE 实时语音同传 (4:50 自动停止)
-        User->>Agent: 轻拍启动全向麦 (omnidirectional 16kHz PCM16)
+        User->>Agent: 轻拍启动前向远场麦 (far-field 16kHz PCM16)
         Agent->>Proxy: WSS /ws/live-translate?token=<Bearer>&target=en
         Proxy->>GCP: BidiGenerateContent setup (gemini-3.5-live-translate-preview)
-        loop 双向实时流 (播音期间上行静音防回声)
+        loop 双向实时流 (上行持续发送真实音频)
             Agent->>Proxy: Binary 16kHz PCM16 音频分片
             Proxy->>GCP: realtimeInput.audio (audio/pcm;rate=16000)
             GCP-->>Proxy: 24kHz 英文语音分片 + 源/目标流式字幕

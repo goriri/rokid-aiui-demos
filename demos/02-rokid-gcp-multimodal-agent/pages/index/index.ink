@@ -139,6 +139,8 @@ const T = STRINGS[LOCALE] || STRINGS.en;
 const MODES = ['gemini', 'translate', 'console'];
 const MODE_TITLES = T.modeTitles;
 const MAX_LIVE_SESSION_SECONDS = 290; // 4:50 auto-stop (under 5:00 server cap)
+const LIVE_MIC_MODE_FALLBACK = 'omnidirectional';
+const LIVE_MIC_MODE = 'far-field';
 
 function getFormattedTime() {
   const d = new Date();
@@ -923,18 +925,31 @@ export default {
     });
 
     let stream = null;
+    let activeMicMode = LIVE_MIC_MODE;
     try {
       if (!navigator || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
         throw new Error('Microphone API unavailable');
       }
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          microphoneMode: 'omnidirectional',
-          echoCancellation: false
-        }
-      });
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            microphoneMode: LIVE_MIC_MODE,
+            echoCancellation: false
+          }
+        });
+      } catch (_) {
+        activeMicMode = LIVE_MIC_MODE_FALLBACK;
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            microphoneMode: LIVE_MIC_MODE_FALLBACK,
+            echoCancellation: false
+          }
+        });
+      }
     } catch (micErr) {
       if (this.turnId !== myTurnId) return;
       this.failLiveSession(myTurnId, (micErr && micErr.message) || 'Mic permission or hardware error');
@@ -1015,17 +1030,15 @@ export default {
             if (this.turnId !== myTurnId || !this.liveActive || this.liveStopping) return;
             if (!this.ws || this.ws.readyState !== 1) return;
 
-            const isEchoMuted =
-              (this.audioCtx && this.nextPlayTime && this.audioCtx.currentTime < this.nextPlayTime + 0.3) ||
-              Date.now() < (this.echoMuteUntilMs || 0);
-            const processed = processMicWavChunk(ab, isEchoMuted, 0.7);
+            const isEchoMuted = false;
+            const processed = processMicWavChunk(ab, false, 0.7);
             if (!processed) return;
 
             this.ws.send(processed.buffer);
             this.txChunks = (this.txChunks || 0) + 1;
             this.txBytes = (this.txBytes || 0) + processed.buffer.byteLength;
 
-            if (!isEchoMuted && processed.peak > 9500) {
+            if (processed.peak > 9500) {
               this.lastSpeechPeakAt = Date.now();
               if (!this.turnVoiceStartAt) {
                 this.turnVoiceStartAt = Date.now();
@@ -1044,7 +1057,7 @@ export default {
           }
         });
         mr.start(100);
-        console.log('[LiveTranslate] MIC_STARTED mode=omnidirectional sr=16000 sliceMs=100 gain=0.7');
+        console.log(`[LiveTranslate] MIC_STARTED mode=${activeMicMode} sr=16000 sliceMs=100 gain=0.7`);
       } catch (mrErr) {
         this.failLiveSession(myTurnId, (mrErr && mrErr.message) || 'MediaRecorder error');
         return;

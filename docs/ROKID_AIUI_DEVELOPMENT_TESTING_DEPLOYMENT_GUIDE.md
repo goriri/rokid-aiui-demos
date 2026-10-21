@@ -139,7 +139,7 @@ export default {
    - **握手鉴权**: 在 HTTP `upgrade` 阶段校验 `/api/auth/verify` 签发的 HMAC-SHA256 Bearer `sessionToken`（同时兼容 `Authorization: Bearer <token>` 或 `X-Rokid-Account-Id` + `X-Rokid-Code`）。未通过校验的连接直接返回 `HTTP 401 Unauthorized` 并断开，不会触发任何上游 Vertex AI 连接。
    - **上游预握手**: 中继向 Vertex AI `locations/global` 建立 `BidiGenerateContent` WebSocket 会话（模型 `gemini-3.5-live-translate-preview`，启用 `responseModalities: ["AUDIO"]`、`translationConfig: { targetLanguageCode: "en" }`、`inputAudioTranscription` 与 `outputAudioTranscription`），等待上游返回 `setupComplete` 后才完成客户端 WebSocket 握手，因此眼镜端在 `ws.onopen` 触发时即可立即推流。
 2. **音频编码格式与双向帧协议**:
-   - **上行音频帧 (Client → Server, Binary)**: `PCM16LE` 单声道 `16 kHz`（推荐每 100 ms 发送 3200 字节）。眼镜端通过 `navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, microphoneMode: 'omnidirectional', echoCancellation: false } })` 配合 `new MediaRecorder(stream, { mimeType: 'audio/wav' })` 每 100 ms 切片、剥离 44 字节 WAV 头部并施加 `0.7` 增益限幅后直接以 `ArrayBuffer` 发送；当眼镜正在播放下行翻译语音时（`nextPlayTime + 300ms`），客户端自动发送全零 PCM 帧实现回声抑制（Echo Control）。
+   - **上行音频帧 (Client → Server, Binary)**: `PCM16LE` 单声道 `16 kHz`（推荐每 100 ms 发送 3200 字节）。眼镜端通过 `navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, microphoneMode: 'far-field', echoCancellation: false } })` 配合 `new MediaRecorder(stream, { mimeType: 'audio/wav' })` 每 100 ms 切片、剥离 44 字节 WAV 头部并施加 `0.7` 增益限幅后直接以 `ArrayBuffer` 发送；当眼镜正在播放下行翻译语音时（`nextPlayTime + 300ms`），客户端自动发送全零 PCM 帧实现回声抑制（Echo Control）。
    - **上行控制帧 (Client → Server, JSON)**:
      - `{"type":"audio_stream_end"}`：用户轻拍停止时发送，服务端按实时速率（100 ms 间隔 × 12 帧）向 Vertex AI 注入 1.2 秒静音帧后发送 `realtimeInput.audioStreamEnd: true`，确保尾句被完整翻译；
      - `{"type":"ping"}`：返回 `{"type":"pong","timestamp":...}`。
