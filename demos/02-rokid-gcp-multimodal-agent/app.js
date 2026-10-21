@@ -16,7 +16,7 @@ export default {
   },
   globalData: {
     agentName: 'GCP Live Translator',
-    version: '1.0.10',
+    version: '1.0.11',
     deviceType: 'RokidGlasses',
     viewport: {
       width: 480,

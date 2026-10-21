@@ -63,8 +63,8 @@ const DEMOS = [
   {
     key: '2',
     slug: '02-rokid-gcp-multimodal-agent',
-    agentId: '68e11a45486e4b279704e1e3c43b4b4b',
-    legacyNames: ['GCP多模态助手', 'GCP Multimodal Agent'],
+    agentId: '48c2e202270c469886dde77ef1ecc936',
+    legacyNames: ['GCP Live Translator'],
     demoDir: path.join(REPO_ROOT, 'demos/02-rokid-gcp-multimodal-agent'),
     aixRelPath: 'dist/rokid-gcp-multimodal-agent.aix',
     iconRelPath: 'assets/icon.png',

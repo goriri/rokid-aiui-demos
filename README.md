@@ -27,7 +27,7 @@ rokid-aiui-demos/
 │   │   ├── assets/review/                 # 真机实录视频 (demo.mp4)、动图 (preview.gif)、封面 (cover.png) 与截图 (shot1..3.png)
 │   │   └── package.json
 │   │
-│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Live Translator v1.0.10 (Gemini Live 实时语音同传 + Gemini 4 视觉 + 云端监控)
+│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Live Translator v1.0.11 (Gemini Live 实时语音同传 + Gemini 4 视觉 + 云端监控)
 │       ├── app.json                       # AIUI >=0.18.0 清单 (权限: CAMERA, RECORD_AUDIO)
 │       ├── app.js
 │       ├── gcp_config.js                  # Cloud Run HTTP + WebSocket 鉴权中继配置 (零客户端密钥)
@@ -63,7 +63,7 @@ rokid-aiui-demos/
 | :--- | :--- | :--- | :---: | :---: |
 | **Vision Voice Copilot** | `demos/01-rokid-vision-voice-copilot` | `059b26f3ffcd47ab8280a2d176b0f88a` | `1.0.9` | `checking` |
 | **GCP Multimodal Agent** | `demos/02-rokid-gcp-multimodal-agent` (历史快照 `git 099e5fb`) | `68e11a45486e4b279704e1e3c43b4b4b` | `1.0.8` | `checking` |
-| **GCP Live Translator** | `demos/02-rokid-gcp-multimodal-agent` (当前主线包 `v1.0.10`) | `48c2e202270c469886dde77ef1ecc936` | `1.0.2` (= package `v1.0.10`) | `checking` |
+| **GCP Live Translator** | `demos/02-rokid-gcp-multimodal-agent` (当前主线包 `v1.0.11`) | `48c2e202270c469886dde77ef1ecc936` | `1.0.3` (= package `v1.0.11`) | `checking` |
 
 > 💡 **关于 `nativeVersion` 自动递增**：Rokid AIUI Studio 后端每次保存（`updateThirdAgent`）会自动将线上 `nativeVersion` 递增 `+0.0.1`（新建智能体通过 `--create` / `saveAIUIAgent` 从 `1.0.0` 起步）。自动化上传脚本 [`scripts/studio_upload.mjs`](scripts/studio_upload.mjs) 支持 `--dry-run`（默认只读预览）、`--execute`（实网上传并单次保存）以及 `--create`（创建全新智能体并关联提审路径）。
 
@@ -98,7 +98,7 @@ rokid-aiui-demos/
 
 ---
 
-### 🚀 Demo 2: GCP Live Translator / Google Cloud 实时语音同传与多模态助手 (`02-rokid-gcp-multimodal-agent`, v1.0.10)
+### 🚀 Demo 2: GCP Live Translator / Google Cloud 实时语音同传与多模态助手 (`02-rokid-gcp-multimodal-agent`, v1.0.11)
 
 将 **Google Cloud Vertex AI** 实时双向音频同传（**`gemini-3.5-live-translate-preview` on `locations/global`**）与前沿视觉推理（**Gemini 4 `gemini-4-argon` on `locations/global`**）整合至 Rokid 眼镜 480×352 纯英文单绿 HUD（声明权限：`["CAMERA", "RECORD_AUDIO"]`）。
 
