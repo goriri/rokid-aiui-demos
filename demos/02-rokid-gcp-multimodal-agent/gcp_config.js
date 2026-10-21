@@ -7,7 +7,9 @@ export const GCP_CONFIG = {
   projectId: 'cellular-cider-495602-r9',
   region: 'us-central1',
   geminiModel: 'gemini-4-argon',
+  liveTranslateModel: 'gemini-3.5-live-translate',
   cloudRunUrl: 'https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app',
+  liveTranslateBaseUrl: '', // empty -> uses cloudRunUrl (Cloud Run rev 00006-vin serves /ws/live-translate)
   localRelayUrl: 'http://localhost:8088',
   defaultTargetLang: 'en',
   tokenTtl: 3600,
@@ -205,61 +207,21 @@ export async function callGeminiMultimodal(prompt, base64Image = null, locale = 
 }
 
 /**
- * Call Google Cloud Translation API v2 via Authenticated Cloud Run Proxy (10s timeout)
+ * Build authenticated WebSocket URL for Gemini Live Speech-to-Speech Translation (/ws/live-translate)
+ * Never falls back to simulated tokens; throws on authentication failure.
  */
-export async function queryGoogleTranslate(text, target = 'en') {
-  const targetUrl = GCP_CONFIG.cloudRunUrl || GCP_CONFIG.localRelayUrl;
-
-  try {
-    if (!sessionToken) {
-      await authenticateWithProxy('rokid_glasses_user_01', 'test_valid_glasses_code');
+export async function buildLiveTranslateWsUrl(target = GCP_CONFIG.defaultTargetLang) {
+  const liveBaseUrl = GCP_CONFIG.liveTranslateBaseUrl || GCP_CONFIG.cloudRunUrl || GCP_CONFIG.localRelayUrl;
+  if (!sessionToken || sessionToken.includes('simulated_session_token')) {
+    const auth = await authenticateWithProxy('rokid_glasses_user_01', 'test_valid_glasses_code');
+    if (!auth || !auth.success || auth.simulated || !sessionToken || sessionToken.includes('simulated_session_token')) {
+      throw new Error((auth && auth.error) || 'Auth verification failed');
     }
-
-    const headers = { 'Content-Type': 'application/json' };
-    if (sessionToken) {
-      headers['Authorization'] = `Bearer ${sessionToken}`;
-    }
-
-    const res = await requestJson(`${targetUrl}/api/translate`, {
-      method: 'POST',
-      headers,
-      body: { text, target },
-      timeoutMs: GCP_CONFIG.defaultTimeoutMs
-    });
-
-    if (res.ok && res.data && res.data.translation) {
-      return {
-        translated: res.data.translation,
-        sourceLang: res.data.detectedSource || (target === 'en' ? 'zh-CN' : 'en'),
-        offline: false
-      };
-    }
-  } catch (err) {
-    console.warn('[GCP Client] Proxy translate error:', err);
   }
-
-  const dictionary = {
-    '早上好！今天的天气非常适合开展户外实地考察。': 'Good morning! The weather today is ideal for outdoor field work.',
-    '欢迎使用由 Google Cloud Vertex AI 驱动的 Rokid AR 眼镜。': 'Welcome to Rokid AR Glasses powered by Google Cloud Vertex AI.',
-    '微光波导显示器在户外阳光下依然保持清晰对比度。': 'The optical waveguide display keeps crisp contrast in bright sunlight.',
-    '与设计团队的下一场会议将在15分钟后开始。': 'The next meeting with the design team starts in 15 minutes.',
-    'Good morning! The weather today is perfect for outdoor field work.': '早上好！今天的天气非常适合开展户外实地考察。',
-    'Welcome to Rokid AR Glasses powered by Google Cloud.': '欢迎使用由 Google Cloud 强力驱动的 Rokid AR 眼镜。',
-    'AI Target acquired: Analyzing spatial geometry and depth.': '目标已锁定：正在分析空间几何特征与纵深数据。',
-    'Real-time bilingual subtitles activated.': '实时双语同传字幕已激活。'
-  };
-
-  const sample = dictionary[text] || text;
-  const offlinePrefix =
-    target === 'en'
-      ? 'OFFLINE DEMO · Cloud unreachable — showing sample result: '
-      : 'OFFLINE DEMO · 云端不可达 — 展示示例结果：';
-
-  return {
-    translated: `${offlinePrefix}${sample}`,
-    sourceLang: target === 'en' ? 'zh-CN' : 'en',
-    offline: true
-  };
+  const wsBase = liveBaseUrl.replace(/^http/, 'ws').replace(/\/+$/, '');
+  const tgt = encodeURIComponent(target || GCP_CONFIG.defaultTargetLang || 'en');
+  const tok = encodeURIComponent(sessionToken);
+  return `${wsBase}/ws/live-translate?token=${tok}&target=${tgt}`;
 }
 
 /**

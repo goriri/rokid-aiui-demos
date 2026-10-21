@@ -15,12 +15,13 @@ const STRINGS = {
     brand: 'GCP',
     modeTitles: {
       gemini: 'GEMINI 4 LIVE',
-      translate: 'AR TRANSLATOR',
+      translate: 'LIVE TRANSLATE',
       console: 'CLOUD CONSOLE'
     },
     tapDescs: {
       gemini: 'Vision Q&A',
-      translate: 'Next Line',
+      translate: 'Start Live',
+      translateStop: 'Stop Live',
       console: 'Ping Health'
     },
     reticleLabel: 'AI TARGET ACQUISITION',
@@ -39,30 +40,20 @@ const STRINGS = {
     geminiResultPrefix: '[Vertex AI // Cloud Run',
     geminiFallbackTag: 'OFFLINE DEMO · Cloud unreachable — showing sample result: ',
     geminiFallbackText: 'Rokid AR monochrome-green waveguide module nominal.',
-    translateFallbackPrefix: 'OFFLINE DEMO · Cloud unreachable — showing sample result: ',
-    translateActive: '>> GCP LIVE TRANSLATING: ZH-CN -> EN',
-    translateStandby: '>> TRANSLATOR STANDBY (TAP FOR NEXT)',
-    translatePending: 'Cloud Run translating to English...',
-    sourceLabel: 'SOURCE SPEECH [ZH-CN]',
-    targetLabel: 'CLOUD TRANSLATE V2 [EN - PRIMARY]',
-    dialogues: [
-      {
-        source: '早上好！今天的天气非常适合开展户外实地考察。',
-        target: 'Good morning! The weather today is ideal for outdoor field work.'
-      },
-      {
-        source: '欢迎使用由 Google Cloud Vertex AI 驱动的 Rokid AR 眼镜。',
-        target: 'Welcome to Rokid AR Glasses powered by Google Cloud Vertex AI.'
-      },
-      {
-        source: '微光波导显示器在户外阳光下依然保持清晰对比度。',
-        target: 'The optical waveguide display keeps crisp contrast in bright sunlight.'
-      },
-      {
-        source: '与设计团队的下一场会议将在15分钟后开始。',
-        target: 'The next meeting with the design team starts in 15 minutes.'
-      }
-    ],
+    translateStandby: '>> GEMINI LIVE STANDBY (TAP TO START)',
+    translateConnecting: '>> CONNECTING GEMINI LIVE...',
+    translateActive: '>> LISTENING · GEMINI-3.5-LIVE-TRANSLATE',
+    translateSpeaking: '>> SPEAKING TRANSLATION...',
+    translateFinishing: '>> FINISHING TURN...',
+    translateErrorStatus: '>> LIVE TRANSLATION ERROR',
+    translateInitialSource: 'Tap temple to start omnidirectional mic capture (16 kHz PCM).',
+    translateInitialTarget: 'Gemini Live (gemini-3.5-live-translate) streams English speech & subtitles.',
+    translateConnectingSource: 'Opening authenticated WebSocket to Cloud Run Gemini Live...',
+    translateListeningSource: 'Listening for speech...',
+    translateListeningTarget: 'Waiting for translated English stream...',
+    sourceLabelPrefix: 'SOURCE SPEECH',
+    targetLabel: 'GEMINI-3.5-LIVE-TRANSLATE [EN]',
+    liveTranslateModel: 'gemini-3.5-live-translate',
     metricProxyKey: 'GCP PROXY',
     metricProxyVal: 'CLOUDRUN OK',
     metricAuthKey: 'AGENT AUTH',
@@ -86,12 +77,13 @@ const STRINGS = {
     brand: 'GCP',
     modeTitles: {
       gemini: 'GEMINI 4 LIVE',
-      translate: 'AR TRANSLATOR',
+      translate: 'LIVE TRANSLATE',
       console: 'CLOUD CONSOLE'
     },
     tapDescs: {
       gemini: '拍照推理',
-      translate: '下句同传',
+      translate: '开始同传',
+      translateStop: '停止同传',
       console: '刷新健康'
     },
     reticleLabel: 'AI TARGET ACQUISITION',
@@ -110,30 +102,20 @@ const STRINGS = {
     geminiResultPrefix: '【Vertex AI // Cloud Run',
     geminiFallbackTag: 'OFFLINE DEMO · 云端不可达 — 展示示例结果：',
     geminiFallbackText: 'Rokid AR 单绿光波导光学模组运行正常。',
-    translateFallbackPrefix: 'OFFLINE DEMO · 云端不可达 — 展示示例结果：',
-    translateActive: '>> GCP 同传中: EN -> ZH-CN',
-    translateStandby: '>> 同传待命中 (轻拍模拟下一句)',
-    translatePending: 'Cloud Run 正在实时同传...',
-    sourceLabel: 'SOURCE SPEECH [EN]',
-    targetLabel: 'CLOUD TRANSLATE V2 [ZH-CN]',
-    dialogues: [
-      {
-        source: 'Good morning! The weather today is perfect for outdoor field work.',
-        target: '早上好！今天的天气非常适合开展户外实地考察。'
-      },
-      {
-        source: 'Welcome to Rokid AR Glasses powered by Google Cloud Vertex AI.',
-        target: '欢迎使用由 Google Cloud Vertex AI 强力驱动的 Rokid AR 眼镜。'
-      },
-      {
-        source: 'Optical waveguide display maintains crisp contrast in bright sunlight.',
-        target: '微光波导显示器在户外阳光下依然保持清晰对比度。'
-      },
-      {
-        source: 'Next meeting with the design team starts in 15 minutes.',
-        target: '与设计团队的下一场会议将在15分钟后开始。'
-      }
-    ],
+    translateStandby: '>> GEMINI 同传待命 (轻拍开始)',
+    translateConnecting: '>> 正在连接 GEMINI LIVE...',
+    translateActive: '>> 实时拾音中 · GEMINI-3.5-LIVE-TRANSLATE',
+    translateSpeaking: '>> 正在播报同传语音...',
+    translateFinishing: '>> 正在完成本轮同传...',
+    translateErrorStatus: '>> 实时同传连接异常',
+    translateInitialSource: '轻拍镜腿启动全向麦克风实时拾音 (16 kHz PCM)。',
+    translateInitialTarget: 'Gemini Live (gemini-3.5-live-translate) 实时流式输出英文语音与字幕。',
+    translateConnectingSource: '正在建立 Cloud Run Gemini Live 鉴权连接...',
+    translateListeningSource: '正在聆听周围语音...',
+    translateListeningTarget: '等待实时英文同传输出...',
+    sourceLabelPrefix: 'SOURCE SPEECH',
+    targetLabel: 'GEMINI-3.5-LIVE-TRANSLATE [EN]',
+    liveTranslateModel: 'gemini-3.5-live-translate',
     metricProxyKey: 'GCP 代理通道',
     metricProxyVal: 'CLOUDRUN OK',
     metricAuthKey: '智能体鉴权',
@@ -156,12 +138,42 @@ const STRINGS = {
 const T = STRINGS[LOCALE] || STRINGS.en;
 const MODES = ['gemini', 'translate', 'console'];
 const MODE_TITLES = T.modeTitles;
-const SAMPLE_DIALOGUES = T.dialogues;
+const MAX_LIVE_SESSION_SECONDS = 290; // 4:50 auto-stop (under 5:00 server cap)
 
 function getFormattedTime() {
   const d = new Date();
   const pad = n => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function formatDuration(sec) {
+  const s = Math.max(0, Math.floor(sec || 0));
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function keepLatestSentence(rawText, maxChars = 110) {
+  const clean = String(rawText || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  let candidate = clean;
+  if (clean.length > 65) {
+    const parts = clean
+      .split(/(?<=[。！？.!?])\s*/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (parts.length > 1) {
+      const last = parts[parts.length - 1];
+      candidate =
+        last.length < 16 && parts.length >= 2
+          ? `${parts[parts.length - 2]} ${last}`.trim()
+          : last;
+    }
+  }
+  if (candidate.length > maxChars) {
+    return candidate.slice(candidate.length - maxChars).trim();
+  }
+  return candidate;
 }
 
 function toArrayBuffer(data) {
@@ -172,6 +184,34 @@ function toArrayBuffer(data) {
   return null;
 }
 
+function processMicWavChunk(ab, mute = false, gain = 0.7) {
+  if (!ab || ab.byteLength <= 44) return null;
+  const u8 = new Uint8Array(ab, 0, 4);
+  const isRiff = u8[0] === 0x52 && u8[1] === 0x49 && u8[2] === 0x46 && u8[3] === 0x46;
+  const offset = isRiff ? 44 : 0;
+  const usableBytes = (ab.byteLength - offset) & ~1;
+  if (usableBytes <= 0) return null;
+  if (mute) {
+    return { buffer: new ArrayBuffer(usableBytes), peak: 0 };
+  }
+  const srcView = new DataView(ab, offset, usableBytes);
+  const outBuf = new ArrayBuffer(usableBytes);
+  const dstView = new DataView(outBuf);
+  const samples = usableBytes >> 1;
+  let peak = 0;
+  for (let i = 0; i < samples; i++) {
+    const bytePos = i * 2;
+    const raw = srcView.getInt16(bytePos, true);
+    let scaled = Math.round(raw * gain);
+    if (scaled > 32767) scaled = 32767;
+    else if (scaled < -32768) scaled = -32768;
+    const abs = scaled < 0 ? -scaled : scaled;
+    if (abs > peak) peak = abs;
+    dstView.setInt16(bytePos, scaled, true);
+  }
+  return { buffer: outBuf, peak };
+}
+
 import wx from 'wx';
 import {
   GCP_CONFIG,
@@ -179,7 +219,7 @@ import {
   authenticateWithProxy,
   callGeminiMultimodal,
   queryGeminiVertexAI,
-  queryGoogleTranslate,
+  buildLiveTranslateWsUrl,
   checkGCPHealth,
   getSessionState
 } from '../../gcp_config.js';
@@ -201,10 +241,12 @@ export default {
     isBusy: false,
     cameraAvailable: false,
 
-    // Mode 2: Translate
-    currentSource: SAMPLE_DIALOGUES[0].source,
-    currentTranslation: SAMPLE_DIALOGUES[0].target,
-    dialogueIndex: 0,
+    // Mode 2: Live Translate (Gemini Live speech-to-speech)
+    currentSource: T.translateInitialSource,
+    currentTranslation: T.translateInitialTarget,
+    detectedSourceLang: 'AUTO',
+    translateStatusText: T.translateStandby,
+    sessionTimerText: '00:00',
     isTranslating: false,
 
     // Mode 3: Console
@@ -217,6 +259,23 @@ export default {
     this.turnId = 0;
     this.currentUtterance = null;
     this.cameraContext = null;
+    this.liveActive = false;
+    this.liveStopping = false;
+    this.ws = null;
+    this.micStream = null;
+    this.mediaRecorder = null;
+    this.audioCtx = null;
+    this.connectTimer = null;
+    this.sessionTimer = null;
+    this.stopWaitTimer = null;
+    this.speakingBadgeTimer = null;
+    this.nextPlayTime = 0;
+    this.echoMuteUntilMs = 0;
+    this.pendingPlayChunks = [];
+    this.liveInputBuffer = '';
+    this.liveOutputBuffer = '';
+    this.turnCompletedSinceLastInput = false;
+    this.turnCompletedSinceLastOutput = false;
     if (wx && typeof wx.request === 'function') {
       registerWxRequest(wx.request.bind(wx));
     }
@@ -251,8 +310,15 @@ export default {
     this.setData({ cameraAvailable: !!this.cameraContext });
   },
 
+  onHide() {
+    if (this.liveActive) {
+      this.teardownLiveSession('onHide');
+    }
+  },
+
   onUnload() {
     ++this.turnId;
+    this.teardownLiveSession('onUnload');
     this.stopClock();
     this.stopTtsTimer();
   },
@@ -341,6 +407,9 @@ export default {
   onKeyDown(e) {
     const key = (e && (e.code || e.key)) || '';
     if (key === 'Backspace' || key === 'Escape' || key === 'Back' || key === 'GoBack') {
+      if (this.liveActive) {
+        this.teardownLiveSession('back_key');
+      }
       return;
     }
   },
@@ -350,6 +419,9 @@ export default {
     console.log('[AIUI GCP] KeyUp:', key);
 
     if (key === 'Backspace' || key === 'Escape' || key === 'Back' || key === 'GoBack') {
+      if (this.liveActive) {
+        this.teardownLiveSession('back_key');
+      }
       return;
     }
     if (key === 'Enter' || key === 'Space' || key === 'GlobalHook') {
@@ -387,6 +459,9 @@ export default {
   },
 
   switchMode(targetMode) {
+    if (this.liveActive) {
+      this.teardownLiveSession('mode_switch');
+    }
     let tapDesc = T.tapDescs.gemini;
     let statusBadge = 'VERTEX';
 
@@ -412,7 +487,7 @@ export default {
     if (currentMode === 'gemini') {
       this.triggerGeminiVisionCapture();
     } else if (currentMode === 'translate') {
-      this.triggerNextTranslation();
+      this.toggleLiveTranslation();
     } else if (currentMode === 'console') {
       this.refreshConsoleHealth();
     }
@@ -516,54 +591,610 @@ export default {
     return this.triggerGeminiVisionCapture();
   },
 
-  // Mode 2: Live subtitle translation via Cloud Run Proxy -> Cloud Translation v2
-  async triggerNextTranslation() {
-    if (this.data.isTranslating || this.data.isCapturing || this.data.isBusy) return;
+  // Mode 2: Real-time Speech-to-Speech Translation via Cloud Run WS -> Vertex AI Gemini Live
+  toggleLiveTranslation() {
+    if (this.data.isCapturing) return;
+    if (this.liveActive) {
+      this.stopLiveTranslation('user_tap_stop');
+      return;
+    }
+    this.startLiveTranslation();
+  },
+
+  clearLiveTimers() {
+    if (this.connectTimer) {
+      clearTimeout(this.connectTimer);
+      this.connectTimer = null;
+    }
+    if (this.sessionTimer) {
+      clearInterval(this.sessionTimer);
+      this.sessionTimer = null;
+    }
+    if (this.stopWaitTimer) {
+      clearTimeout(this.stopWaitTimer);
+      this.stopWaitTimer = null;
+    }
+    if (this.speakingBadgeTimer) {
+      clearTimeout(this.speakingBadgeTimer);
+      this.speakingBadgeTimer = null;
+    }
+    if (this.playDrainTimer) {
+      clearTimeout(this.playDrainTimer);
+      this.playDrainTimer = null;
+    }
+  },
+
+  releaseMicOnly() {
+    let released = false;
+    if (this.mediaRecorder) {
+      try {
+        if (this.mediaRecorder.state && this.mediaRecorder.state !== 'inactive') {
+          this.mediaRecorder.stop();
+        }
+      } catch (_) {}
+      this.mediaRecorder = null;
+      released = true;
+    }
+    if (this.micStream) {
+      try {
+        const tracks = this.micStream.getTracks ? this.micStream.getTracks() : [];
+        for (const t of tracks) {
+          t.stop();
+        }
+      } catch (_) {}
+      this.micStream = null;
+      released = true;
+    }
+    if (released) {
+      console.log('[LiveTranslate] MIC_RELEASED');
+    }
+  },
+
+  teardownLiveSession(reason = 'teardown', preserveErrorState = false) {
+    const wasActive = this.liveActive;
+    ++this.turnId;
+    this.liveActive = false;
+    this.liveStopping = false;
+    this.clearLiveTimers();
+    this.releaseMicOnly();
+
+    if (this.ws) {
+      const sock = this.ws;
+      this.ws = null;
+      try {
+        sock.close(1000, reason);
+      } catch (_) {}
+    }
+
+    if (this.audioCtx) {
+      const ctx = this.audioCtx;
+      this.audioCtx = null;
+      try {
+        ctx.close();
+      } catch (_) {}
+    }
+    this.nextPlayTime = 0;
+    this.echoMuteUntilMs = 0;
+    this.pendingPlayChunks = [];
+
+    if (wasActive) {
+      console.log(
+        `[LiveTranslate] SESSION_CLOSED reason=${reason} txChunks=${this.txChunks || 0} txBytes=${this.txBytes || 0} rxAudioChunks=${this.rxAudioChunks || 0} rxAudioBytes=${this.rxAudioBytes || 0}`
+      );
+    }
+
+    if (preserveErrorState) {
+      return;
+    }
+
+    if (this.data.mode === 'translate') {
+      this.setData({
+        isTranslating: false,
+        isBusy: false,
+        statusBadge: 'LIVE',
+        tapDesc: T.tapDescs.translate,
+        translateStatusText: T.translateStandby
+      });
+    } else {
+      this.setData({
+        isTranslating: false,
+        isBusy: false
+      });
+    }
+  },
+
+  failLiveSession(turnId, rawReason) {
+    if (turnId !== undefined && turnId !== this.turnId) return;
+    const reason = String(rawReason || 'Connection failed')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 64);
+    console.warn(`[LiveTranslate] SESSION_ERROR reason=${reason}`);
+    this.teardownLiveSession('error', true);
+    this.setData({
+      isTranslating: false,
+      isBusy: false,
+      statusBadge: 'ERROR',
+      tapDesc: T.tapDescs.translate,
+      translateStatusText: T.translateErrorStatus,
+      currentTranslation: `LIVE TRANSLATION UNAVAILABLE · ${reason}`
+    });
+  },
+
+  stopLiveTranslation(reason = 'user_stop') {
+    if (!this.liveActive) return;
+    const myTurnId = this.turnId;
+
+    if (this.liveStopping) {
+      this.teardownLiveSession(`${reason}_immediate`);
+      return;
+    }
+
+    this.liveStopping = true;
+    this.releaseMicOnly();
+
+    if (this.ws && this.ws.readyState === 1) {
+      try {
+        this.ws.send(JSON.stringify({ type: 'audio_stream_end' }));
+        console.log(`[LiveTranslate] TX_AUDIO_STREAM_END reason=${reason} waiting for turn_complete (max 3000ms)`);
+      } catch (_) {}
+      this.setData({
+        translateStatusText: T.translateFinishing
+      });
+      if (this.stopWaitTimer) clearTimeout(this.stopWaitTimer);
+      this.stopWaitTimer = setTimeout(() => {
+        this.stopWaitTimer = null;
+        if (this.turnId === myTurnId && this.liveActive) {
+          this.teardownLiveSession('stop_timeout_3s');
+        }
+      }, 3000);
+    } else {
+      this.teardownLiveSession(reason);
+    }
+  },
+
+  playTranslatedPcmChunk(rawData, myTurnId) {
+    if (this.turnId !== myTurnId || !this.liveActive) return;
+    const ab = toArrayBuffer(rawData);
+    if (!ab || ab.byteLength < 2) return;
+    if (!this.pendingPlayChunks) {
+      this.pendingPlayChunks = [];
+    }
+    if (!this.turnFirstAudioRxAt) {
+      this.turnFirstAudioRxAt = Date.now();
+    }
+    this.pendingPlayChunks.push(ab);
+    this.drainPendingPlayChunks(myTurnId);
+  },
+
+  drainPendingPlayChunks(myTurnId) {
+    if (this.turnId !== myTurnId || !this.liveActive) return;
+    if (!this.pendingPlayChunks || this.pendingPlayChunks.length === 0) return;
+
+    const nowMs = Date.now();
+    const nowCtx = (this.audioCtx && this.audioCtx.currentTime) || 0;
+    const currentlyPlaying = this.nextPlayTime && nowCtx < this.nextPlayTime;
+    const sinceLastLoudMic = this.lastSpeechPeakAt ? nowMs - this.lastSpeechPeakAt : 999999;
+
+    // Wait until the speaker finishes their current clause (550ms quiet after loud speech)
+    // before starting speaker playback + echo-mute, so the mic never cuts off mid-sentence.
+    if (!currentlyPlaying && !this.liveStopping && sinceLastLoudMic < 550) {
+      if (this.playDrainTimer) clearTimeout(this.playDrainTimer);
+      const waitMs = Math.max(40, 560 - sinceLastLoudMic);
+      this.playDrainTimer = setTimeout(() => {
+        this.playDrainTimer = null;
+        this.drainPendingPlayChunks(myTurnId);
+      }, waitMs);
+      return;
+    }
+
+    try {
+      if (!this.audioCtx) {
+        this.audioCtx = new AudioContext();
+      }
+      if (this.audioCtx.state === 'suspended' && typeof this.audioCtx.resume === 'function') {
+        this.audioCtx.resume().catch(() => {});
+      }
+
+      while (this.pendingPlayChunks.length > 0) {
+        const ab = this.pendingPlayChunks.shift();
+        const usableBytes = ab.byteLength & ~1;
+        const sampleCount = usableBytes >> 1;
+        if (sampleCount <= 0) continue;
+
+        const view = new DataView(ab, 0, usableBytes);
+        const f32 = new Float32Array(sampleCount);
+        for (let i = 0; i < sampleCount; i++) {
+          f32[i] = view.getInt16(i * 2, true) / 32768.0;
+        }
+
+        const srcRate = 24000;
+        let audioBuffer;
+        try {
+          audioBuffer = this.audioCtx.createBuffer(1, sampleCount, srcRate);
+          audioBuffer.copyToChannel(f32, 0);
+        } catch (_) {
+          const dstRate = this.audioCtx.sampleRate || 44100;
+          const outLen = Math.round((sampleCount * dstRate) / srcRate);
+          const resampled = new Float32Array(outLen);
+          const ratio = srcRate / dstRate;
+          for (let i = 0; i < outLen; i++) {
+            const pos = i * ratio;
+            const idx = Math.floor(pos);
+            const frac = pos - idx;
+            const s0 = f32[idx] || 0;
+            const s1 = f32[Math.min(idx + 1, sampleCount - 1)] || 0;
+            resampled[i] = s0 + (s1 - s0) * frac;
+          }
+          audioBuffer = this.audioCtx.createBuffer(1, outLen, dstRate);
+          audioBuffer.copyToChannel(resampled, 0);
+        }
+
+        const curCtx = this.audioCtx.currentTime || 0;
+        const startAt = Math.max(curCtx + 0.015, this.nextPlayTime || 0);
+        const source = this.audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(this.audioCtx.destination);
+        source.start(startAt);
+
+        this.nextPlayTime = startAt + audioBuffer.duration;
+        const remainingMs = Math.max(0, Math.ceil((this.nextPlayTime - curCtx) * 1000));
+        this.echoMuteUntilMs = Date.now() + remainingMs + 300;
+        this.rxAudioChunks = (this.rxAudioChunks || 0) + 1;
+        this.rxAudioBytes = (this.rxAudioBytes || 0) + usableBytes;
+
+        if (!this.turnFirstAudioLogged) {
+          this.turnFirstAudioLogged = true;
+          const refStart = this.turnVoiceStartAt || this.liveOpenedAt || Date.now();
+          const firstAudioRxMs = (this.turnFirstAudioRxAt || Date.now()) - refStart;
+          const firstAudioPlayMs = Date.now() - refStart;
+          console.log(
+            `[LiveTranslate] FIRST_AUDIO_PLAY turn=${this.liveTurnIndex || 1} chunk=${this.rxAudioChunks} bytes=${usableBytes} dur=${audioBuffer.duration.toFixed(2)}s firstAudioRxMs=${firstAudioRxMs} firstAudioLatencyMs=${firstAudioPlayMs}`
+          );
+        } else if (this.rxAudioChunks % 5 === 0) {
+          console.log(
+            `[LiveTranslate] AUDIO_PLAY chunk=${this.rxAudioChunks} totalBytes=${this.rxAudioBytes} nextPlayTime=${this.nextPlayTime.toFixed(2)}`
+          );
+        }
+      }
+
+      const finalNowCtx = this.audioCtx.currentTime || 0;
+      const totalRemMs = Math.max(0, Math.ceil((this.nextPlayTime - finalNowCtx) * 1000));
+
+      if (!this.liveStopping) {
+        this.setData({
+          statusBadge: 'SPEAKING',
+          translateStatusText: T.translateSpeaking
+        });
+      }
+      if (this.speakingBadgeTimer) {
+        clearTimeout(this.speakingBadgeTimer);
+      }
+      this.speakingBadgeTimer = setTimeout(() => {
+        this.speakingBadgeTimer = null;
+        if (this.turnId !== myTurnId || !this.liveActive || this.liveStopping) return;
+        this.setData({
+          statusBadge: 'LIVE',
+          translateStatusText: T.translateActive
+        });
+      }, totalRemMs + 300);
+    } catch (err) {
+      console.warn('[LiveTranslate] AudioContext playback error:', err && err.message ? err.message : err);
+    }
+  },
+
+  async startLiveTranslation() {
+    if (this.liveActive || this.data.isCapturing || this.data.isBusy) return;
 
     const myTurnId = ++this.turnId;
     this.stopTtsTimer();
-    const nextIdx = (this.data.dialogueIndex + 1) % SAMPLE_DIALOGUES.length;
-    const item = SAMPLE_DIALOGUES[nextIdx];
+    this.clearLiveTimers();
+    this.liveActive = true;
+    this.liveStopping = false;
+    this.txChunks = 0;
+    this.txBytes = 0;
+    this.rxAudioChunks = 0;
+    this.rxAudioBytes = 0;
+    this.liveTurnIndex = 1;
+    this.turnFirstAudioLogged = false;
+    this.turnFirstAudioRxAt = 0;
+    this.turnVoiceStartAt = 0;
+    this.lastSpeechPeakAt = 0;
+    this.lastInputTranscriptAt = 0;
+    this.lastOutputTranscriptAt = 0;
+    this.pendingPlayChunks = [];
+    this.liveOpenedAt = 0;
+    this.nextPlayTime = 0;
+    this.echoMuteUntilMs = 0;
+    this.pendingPlayChunks = [];
+    this.lastLoggedMute = false;
+    this.liveInputBuffer = '';
+    this.liveOutputBuffer = '';
+    this.turnCompletedSinceLastInput = false;
+    this.turnCompletedSinceLastOutput = false;
+
     this.setData({
-      dialogueIndex: nextIdx,
-      currentSource: item.source,
-      currentTranslation: T.translatePending,
       isTranslating: true,
-      isBusy: true
+      isBusy: true,
+      statusBadge: 'CONNECTING',
+      tapDesc: T.tapDescs.translateStop,
+      translateStatusText: T.translateConnecting,
+      sessionTimerText: '00:00',
+      detectedSourceLang: 'AUTO',
+      currentSource: T.translateConnectingSource,
+      currentTranslation: T.translateListeningTarget
     });
 
+    let stream = null;
     try {
-      const res = await Promise.race([
-        queryGoogleTranslate(item.source, T.translateTargetLang),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('translate_timeout')), 10000))
-      ]);
-      if (this.turnId !== myTurnId) return;
-      if (res && res.translated) {
-        this.setData({
-          currentTranslation: res.translated,
-          statusBadge: res.offline ? 'OFFLINE' : 'LIVE',
-          isCapturing: false,
-          isTranslating: false,
-          isBusy: false
-        });
-        this.speakResponse(res.translated, myTurnId);
-        return;
+      if (!navigator || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+        throw new Error('Microphone API unavailable');
       }
-    } catch (err) {
-      console.warn('[AIUI GCP] Cloud Run Translate error, falling back:', err);
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          microphoneMode: 'omnidirectional',
+          echoCancellation: false
+        }
+      });
+    } catch (micErr) {
+      if (this.turnId !== myTurnId) return;
+      this.failLiveSession(myTurnId, (micErr && micErr.message) || 'Mic permission or hardware error');
+      return;
     }
 
-    if (this.turnId !== myTurnId) return;
+    if (this.turnId !== myTurnId || !this.liveActive) {
+      try {
+        for (const t of stream.getTracks()) t.stop();
+      } catch (_) {}
+      return;
+    }
+    this.micStream = stream;
 
-    const offlineTranslation = `${T.translateFallbackPrefix}${item.target}`;
-    this.setData({
-      currentTranslation: offlineTranslation,
-      statusBadge: 'OFFLINE',
-      isCapturing: false,
-      isTranslating: false,
-      isBusy: false
+    let wsUrl = '';
+    try {
+      wsUrl = await Promise.race([
+        buildLiveTranslateWsUrl(T.translateTargetLang),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 10000))
+      ]);
+    } catch (authErr) {
+      if (this.turnId !== myTurnId) return;
+      this.failLiveSession(myTurnId, (authErr && authErr.message) || 'Auth failed');
+      return;
+    }
+
+    if (this.turnId !== myTurnId || !this.liveActive) {
+      this.releaseMicOnly();
+      return;
+    }
+
+    try {
+      this.audioCtx = new AudioContext();
+      if (this.audioCtx.state === 'suspended' && typeof this.audioCtx.resume === 'function') {
+        this.audioCtx.resume().catch(() => {});
+      }
+    } catch (ctxErr) {
+      console.warn('[LiveTranslate] AudioContext init warning:', ctxErr);
+    }
+
+    let ws;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
+    } catch (wsErr) {
+      this.failLiveSession(myTurnId, (wsErr && wsErr.message) || 'WebSocket init error');
+      return;
+    }
+    this.ws = ws;
+
+    const redactedUrl = wsUrl.replace(/token=[^&]+/, 'token=REDACTED');
+    console.log(`[LiveTranslate] WS_CONNECTING url=${redactedUrl}`);
+
+    this.connectTimer = setTimeout(() => {
+      this.connectTimer = null;
+      if (this.turnId === myTurnId && this.liveActive && (!this.ws || this.ws.readyState !== 1)) {
+        this.failLiveSession(myTurnId, 'Connection timeout');
+      }
+    }, 12000);
+
+    ws.addEventListener('open', () => {
+      if (this.turnId !== myTurnId || !this.liveActive) return;
+      if (this.connectTimer) {
+        clearTimeout(this.connectTimer);
+        this.connectTimer = null;
+      }
+      this.liveOpenedAt = Date.now();
+      console.log(`[LiveTranslate] WS_OPEN url=${redactedUrl}`);
+
+      try {
+        const mr = new MediaRecorder(this.micStream, { mimeType: 'audio/wav' });
+        this.mediaRecorder = mr;
+        mr.addEventListener('dataavailable', async ev => {
+          if (this.turnId !== myTurnId || !this.liveActive || this.liveStopping) return;
+          if (!ev || !ev.data || typeof ev.data.arrayBuffer !== 'function') return;
+          try {
+            const ab = await ev.data.arrayBuffer();
+            if (this.turnId !== myTurnId || !this.liveActive || this.liveStopping) return;
+            if (!this.ws || this.ws.readyState !== 1) return;
+
+            const isEchoMuted =
+              (this.audioCtx && this.nextPlayTime && this.audioCtx.currentTime < this.nextPlayTime + 0.3) ||
+              Date.now() < (this.echoMuteUntilMs || 0);
+            const processed = processMicWavChunk(ab, isEchoMuted, 0.7);
+            if (!processed) return;
+
+            this.ws.send(processed.buffer);
+            this.txChunks = (this.txChunks || 0) + 1;
+            this.txBytes = (this.txBytes || 0) + processed.buffer.byteLength;
+
+            if (!isEchoMuted && processed.peak > 9500) {
+              this.lastSpeechPeakAt = Date.now();
+              if (!this.turnVoiceStartAt) {
+                this.turnVoiceStartAt = Date.now();
+                console.log(`[LiveTranslate] VOICE_START turn=${this.liveTurnIndex} chunk=${this.txChunks} peak=${processed.peak}`);
+              }
+            }
+
+            if (this.txChunks === 1 || this.txChunks % 10 === 0 || isEchoMuted !== this.lastLoggedMute) {
+              this.lastLoggedMute = isEchoMuted;
+              console.log(
+                `[LiveTranslate] TX_PCM chunk=${this.txChunks} bytes=${processed.buffer.byteLength} totalBytes=${this.txBytes} peak=${processed.peak} echoMuted=${isEchoMuted}`
+              );
+            }
+          } catch (chunkErr) {
+            console.warn('[LiveTranslate] Mic chunk error:', chunkErr && chunkErr.message ? chunkErr.message : chunkErr);
+          }
+        });
+        mr.start(100);
+        console.log('[LiveTranslate] MIC_STARTED mode=omnidirectional sr=16000 sliceMs=100 gain=0.7');
+      } catch (mrErr) {
+        this.failLiveSession(myTurnId, (mrErr && mrErr.message) || 'MediaRecorder error');
+        return;
+      }
+
+      this.sessionTimer = setInterval(() => {
+        if (this.turnId !== myTurnId || !this.liveActive) return;
+        const elapsedSec = Math.floor((Date.now() - this.liveOpenedAt) / 1000);
+        this.setData({
+          sessionTimerText: formatDuration(elapsedSec)
+        });
+        if (elapsedSec >= MAX_LIVE_SESSION_SECONDS) {
+          console.log('[LiveTranslate] AUTO_STOP at 04:50 session limit');
+          this.stopLiveTranslation('max_session_4m50s');
+        }
+      }, 1000);
+
+      this.setData({
+        statusBadge: 'LIVE',
+        translateStatusText: T.translateActive,
+        currentSource: T.translateListeningSource,
+        currentTranslation: T.translateListeningTarget
+      });
     });
-    this.speakResponse(offlineTranslation, myTurnId);
+
+    ws.addEventListener('message', ev => {
+      if (this.turnId !== myTurnId || !this.liveActive) return;
+      const data = ev && ev.data;
+      if (!data) return;
+
+      if (data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
+        this.playTranslatedPcmChunk(data, myTurnId);
+        return;
+      }
+
+      if (typeof data === 'string') {
+        let evt;
+        try {
+          evt = JSON.parse(data);
+        } catch (_) {
+          return;
+        }
+
+        if (evt.type === 'input_transcript' && typeof evt.text === 'string') {
+          const nowIn = Date.now();
+          if (this.turnCompletedSinceLastInput || (this.lastInputTranscriptAt && nowIn - this.lastInputTranscriptAt > 2500)) {
+            if (!this.turnCompletedSinceLastInput && this.liveInputBuffer) {
+              this.liveTurnIndex = (this.liveTurnIndex || 1) + 1;
+              this.turnFirstAudioLogged = false;
+              this.turnFirstAudioRxAt = 0;
+              this.turnCompletedSinceLastOutput = true;
+            }
+            this.liveInputBuffer = '';
+            this.turnCompletedSinceLastInput = false;
+          }
+          this.lastInputTranscriptAt = nowIn;
+          this.liveInputBuffer += evt.text;
+          const langCode = evt.languageCode
+            ? String(evt.languageCode).toUpperCase()
+            : this.data.detectedSourceLang || 'AUTO';
+          const displaySource = keepLatestSentence(this.liveInputBuffer, 110);
+          console.log(
+            `[LiveTranslate] RX_INPUT_TRANSCRIPT lang=${langCode} chunk=${JSON.stringify(evt.text)} full=${JSON.stringify(this.liveInputBuffer)}`
+          );
+          this.setData({
+            detectedSourceLang: langCode,
+            currentSource: displaySource || this.liveInputBuffer
+          });
+          return;
+        }
+
+        if (evt.type === 'output_transcript' && typeof evt.text === 'string') {
+          const nowOut = Date.now();
+          if (this.turnCompletedSinceLastOutput || (this.lastOutputTranscriptAt && nowOut - this.lastOutputTranscriptAt > 2500)) {
+            this.liveOutputBuffer = '';
+            this.turnCompletedSinceLastOutput = false;
+          }
+          this.lastOutputTranscriptAt = nowOut;
+          this.liveOutputBuffer += evt.text;
+          const displayTarget = keepLatestSentence(this.liveOutputBuffer, 110);
+          console.log(
+            `[LiveTranslate] RX_OUTPUT_TRANSCRIPT lang=${evt.languageCode || 'en'} chunk=${JSON.stringify(evt.text)} full=${JSON.stringify(this.liveOutputBuffer)}`
+          );
+          this.setData({
+            currentTranslation: displayTarget || this.liveOutputBuffer
+          });
+          return;
+        }
+
+        if (evt.type === 'turn_complete') {
+          const completedTurn = this.liveTurnIndex || 1;
+          this.liveTurnIndex = completedTurn + 1;
+          this.turnCompletedSinceLastInput = true;
+          this.turnCompletedSinceLastOutput = true;
+          this.turnFirstAudioLogged = false;
+          this.turnVoiceStartAt = 0;
+          console.log(
+            `[LiveTranslate] RX_TURN_COMPLETE turn=${completedTurn} stopping=${!!this.liveStopping} in=${JSON.stringify(this.liveInputBuffer)} out=${JSON.stringify(this.liveOutputBuffer)}`
+          );
+          if (this.liveStopping) {
+            if (this.stopWaitTimer) {
+              clearTimeout(this.stopWaitTimer);
+              this.stopWaitTimer = null;
+            }
+            const nowCtx = (this.audioCtx && this.audioCtx.currentTime) || 0;
+            const remAudioMs =
+              this.nextPlayTime > nowCtx
+                ? Math.min(2000, Math.ceil((this.nextPlayTime - nowCtx) * 1000) + 120)
+                : 0;
+            if (remAudioMs > 50) {
+              this.stopWaitTimer = setTimeout(() => {
+                this.stopWaitTimer = null;
+                if (this.turnId === myTurnId && this.liveActive) {
+                  this.teardownLiveSession('turn_complete_after_stop');
+                }
+              }, remAudioMs);
+            } else {
+              this.teardownLiveSession('turn_complete_after_stop');
+            }
+          }
+          return;
+        }
+
+        if (evt.type === 'error') {
+          this.failLiveSession(myTurnId, evt.message || evt.code || 'Live translation error');
+        }
+      }
+    });
+
+    ws.addEventListener('error', ev => {
+      if (this.turnId !== myTurnId || !this.liveActive) return;
+      const msg = (ev && ev.message) || 'WebSocket connection failed';
+      console.warn(`[LiveTranslate] WS_ERROR msg=${msg}`);
+      this.failLiveSession(myTurnId, msg);
+    });
+
+    ws.addEventListener('close', ev => {
+      if (this.turnId !== myTurnId || !this.liveActive) return;
+      const code = (ev && ev.code) || 0;
+      const reason = (ev && ev.reason) || '';
+      console.log(`[LiveTranslate] WS_CLOSE code=${code} reason=${reason} stopping=${!!this.liveStopping}`);
+      if (this.liveStopping) {
+        this.teardownLiveSession(`ws_closed_${code}`);
+      } else {
+        this.failLiveSession(myTurnId, reason || `Connection closed (${code || 'network'})`);
+      }
+    });
   },
 
   // Mode 3: Cloud Run health check
@@ -592,6 +1223,7 @@ export default {
   },
 
   resetIdle() {
+    this.teardownLiveSession('reset_idle');
     ++this.turnId;
     this.stopTtsTimer();
     this.switchMode('gemini');
@@ -641,20 +1273,21 @@ export default {
         </view>
       </view>
 
-      <!-- Mode 2: Google Cloud Live AR Bilingual Subtitle Translator -->
+      <!-- Mode 2: Google Cloud Gemini Live Speech-to-Speech Translator -->
       <view class="panel-box translate-panel" ink:if="{{mode === 'translate'}}">
         <view class="wave-box">
-          <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
-          <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
-          <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
-          <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
-          <text class="wave-status-text">
-            {{isTranslating ? ui.translateActive : ui.translateStandby}}
-          </text>
+          <view class="wave-left">
+            <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
+            <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
+            <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
+            <view class="wave-bar {{isTranslating ? 'wave-active' : ''}}"></view>
+            <text class="wave-status-text">{{translateStatusText}}</text>
+          </view>
+          <text class="session-timer-text">{{sessionTimerText}}</text>
         </view>
 
         <view class="source-section">
-          <view class="line-label">{{ui.sourceLabel}}</view>
+          <view class="line-label">{{ui.sourceLabelPrefix}} [{{detectedSourceLang}}]</view>
           <text class="source-text">{{currentSource}}</text>
         </view>
 
@@ -913,9 +1546,17 @@ export default {
 .wave-box {
   display: flex;
   flex-direction: row;
+  justify-content: space-between;
   align-items: center;
   height: 24px;
   margin-bottom: 6px;
+}
+
+.wave-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow: hidden;
 }
 
 .wave-bar {
@@ -936,6 +1577,13 @@ export default {
   font-weight: 400;
   color: rgba(64, 255, 94, 0.72);
   margin-left: 6px;
+}
+
+.session-timer-text {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 400;
+  color: rgba(64, 255, 94, 0.72);
 }
 
 .source-section {

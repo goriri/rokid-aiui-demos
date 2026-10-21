@@ -2,12 +2,16 @@ import http from 'http';
 import https from 'https';
 import crypto from 'crypto';
 import { execSync } from 'child_process';
+import WebSocket, { WebSocketServer } from 'ws';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const PROJECT_ID = process.env.GCP_PROJECT || 'cellular-cider-495602-r9';
 const REGION = process.env.GCP_REGION || 'us-central1';
 const GEMINI_LOCATION = process.env.GEMINI_LOCATION || 'global';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-4-argon';
+const LIVE_TRANSLATE_LOCATION = process.env.LIVE_TRANSLATE_LOCATION || 'global';
+const LIVE_TRANSLATE_MODEL = process.env.LIVE_TRANSLATE_MODEL || 'gemini-3.5-live-translate-preview';
+const LIVE_SESSION_MAX_MS = parseInt(process.env.LIVE_SESSION_MAX_MS || '300000', 10); // 5 min session cap
 const ROKID_DEVELOPER_SK = process.env.ROKID_DEVELOPER_SK || 'SK-3D7F2A9C1E5B';
 const JWT_SECRET = process.env.JWT_SECRET || 'rokid-aiui-jwt-secret-key-2026-safe-guard';
 const ALLOW_TEST_TOKENS = process.env.ALLOW_TEST_TOKENS === 'true' || true;
@@ -59,10 +63,19 @@ async function getGcpAccessToken() {
 
   // Fallback to local ADC
   try {
-    const stdout = execSync('gcloud auth application-default print-access-token', {
-      encoding: 'utf8',
-      timeout: 10000
-    });
+    const gcloudBin = process.env.GCLOUD_BIN || 'gcloud';
+    let stdout;
+    try {
+      stdout = execSync(`${gcloudBin} auth application-default print-access-token`, {
+        encoding: 'utf8',
+        timeout: 10000
+      });
+    } catch (_) {
+      stdout = execSync('/Users/jush/Downloads/google-cloud-sdk/bin/gcloud auth application-default print-access-token', {
+        encoding: 'utf8',
+        timeout: 10000
+      });
+    }
     const lines = stdout.trim().split('\n');
     cachedGcpToken = lines[lines.length - 1].trim();
     gcpTokenExpiry = now + 50 * 60 * 1000;
@@ -447,7 +460,495 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { error: 'Not found' });
 });
 
+// Authenticate WebSocket Upgrade Request (Query token, Authorization header, or Rokid headers/query)
+async function authenticateWsRequest(req, url) {
+  const queryToken = url.searchParams.get('token');
+  if (queryToken) {
+    const payload = verifySessionToken(queryToken.trim());
+    if (payload) {
+      return { authenticated: true, user: payload, authType: 'QUERY_SESSION_TOKEN' };
+    }
+  }
+
+  const headerAuth = await authenticateRequest(req);
+  if (headerAuth.authenticated) {
+    return headerAuth;
+  }
+
+  const queryAccountId = url.searchParams.get('accountId');
+  const queryCode = url.searchParams.get('code');
+  if (queryAccountId && queryCode) {
+    const result = await verifyRokidAccountCode({ accountId: queryAccountId, code: queryCode });
+    if (result.checkResult) {
+      return {
+        authenticated: true,
+        user: { accountId: queryAccountId, mobile: result.mobile },
+        authType: 'QUERY_ROKID_CODE'
+      };
+    }
+    return { authenticated: false, error: result.msg || 'Rokid 智能体校验未通过' };
+  }
+
+  return headerAuth;
+}
+
+const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024 });
+
+function sendClientJson(clientWs, obj) {
+  if (clientWs.readyState === WebSocket.OPEN) {
+    clientWs.send(JSON.stringify(obj));
+  }
+}
+
+function hasAudiblePcmSample(pcmBuffer, threshold = 8) {
+  for (let i = 0; i + 1 < pcmBuffer.length; i += 2) {
+    if (Math.abs(pcmBuffer.readInt16LE(i)) > threshold) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Establish upstream Vertex AI Live session and wait for setupComplete before completing client WS upgrade
+async function openUpstreamLiveSession({ targetLanguageCode, echoTargetLanguage }) {
+  const gcpToken = await getGcpAccessToken();
+  if (!gcpToken) {
+    throw new Error('Failed to obtain Google Cloud access token for Live API');
+  }
+
+  const liveHost =
+    LIVE_TRANSLATE_LOCATION === 'global'
+      ? 'aiplatform.googleapis.com'
+      : `${LIVE_TRANSLATE_LOCATION}-aiplatform.googleapis.com`;
+  const upstreamUrl = `wss://${liveHost}/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`;
+
+  return new Promise((resolve, reject) => {
+    const upstreamWs = new WebSocket(upstreamUrl, {
+      headers: {
+        Authorization: `Bearer ${gcpToken}`,
+        'x-goog-user-project': PROJECT_ID
+      }
+    });
+
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try {
+        upstreamWs.terminate();
+      } catch (_) {}
+      reject(new Error('Upstream Vertex AI Live setup timed out'));
+    }, 8000);
+
+    upstreamWs.on('open', () => {
+      const setupMsg = {
+        setup: {
+          model: `projects/${PROJECT_ID}/locations/${LIVE_TRANSLATE_LOCATION}/publishers/google/models/${LIVE_TRANSLATE_MODEL}`,
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            translationConfig: {
+              targetLanguageCode,
+              echoTargetLanguage
+            }
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {}
+        }
+      };
+      upstreamWs.send(JSON.stringify(setupMsg));
+    });
+
+    const onEarlyMessage = (raw) => {
+      if (settled) return;
+      try {
+        const msg = JSON.parse(raw.toString('utf8'));
+        if (msg.setupComplete) {
+          settled = true;
+          clearTimeout(timeout);
+          upstreamWs.off('message', onEarlyMessage);
+          resolve(upstreamWs);
+        } else if (msg.error) {
+          settled = true;
+          clearTimeout(timeout);
+          upstreamWs.off('message', onEarlyMessage);
+          try {
+            upstreamWs.close();
+          } catch (_) {}
+          reject(new Error(msg.error.message || 'Upstream setup error'));
+        }
+      } catch (_) {}
+    };
+
+    upstreamWs.on('message', onEarlyMessage);
+
+    upstreamWs.on('error', (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      reject(err);
+    });
+
+    upstreamWs.on('close', (code, reason) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      reject(new Error(`Upstream closed during setup (${code}): ${reason?.toString() || ''}`));
+    });
+  });
+}
+
+wss.on('connection', async (clientWs, req, url, auth, upstreamWs, targetLanguageCode) => {
+  console.log(
+    `[WS LiveTranslate] Connected caller=${auth.user?.accountId || 'unknown'} auth=${auth.authType} target=${targetLanguageCode}`
+  );
+
+  let closed = false;
+  let hasTurnOutput = false;
+  let consecutiveSilentOutChunks = 0;
+  let lastClientAudioAt = 0;
+  let flushingSilence = false;
+  let turnIdleTimer = null;
+  let silenceFlushTimer = null;
+
+  function clearTurnTimers() {
+    if (turnIdleTimer) {
+      clearTimeout(turnIdleTimer);
+      turnIdleTimer = null;
+    }
+    if (silenceFlushTimer) {
+      clearInterval(silenceFlushTimer);
+      silenceFlushTimer = null;
+    }
+    flushingSilence = false;
+  }
+
+  function emitTurnComplete() {
+    if (turnIdleTimer) {
+      clearTimeout(turnIdleTimer);
+      turnIdleTimer = null;
+    }
+    if (!hasTurnOutput) return;
+    hasTurnOutput = false;
+    consecutiveSilentOutChunks = 0;
+    sendClientJson(clientWs, { type: 'turn_complete' });
+  }
+
+  function scheduleTurnComplete() {
+    if (turnIdleTimer) clearTimeout(turnIdleTimer);
+    turnIdleTimer = setTimeout(() => {
+      turnIdleTimer = null;
+      if (closed || !hasTurnOutput) return;
+      const sinceClientAudio = Date.now() - lastClientAudioAt;
+      if (flushingSilence || sinceClientAudio < 600) {
+        scheduleTurnComplete();
+        return;
+      }
+      emitTurnComplete();
+    }, 900);
+  }
+
+  function sendUpstream(jsonStr) {
+    if (closed) return;
+    if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
+      upstreamWs.send(jsonStr);
+    }
+  }
+
+  function startSilenceFlushAndEnd() {
+    if (flushingSilence || closed) return;
+    flushingSilence = true;
+    const silenceBase64 = Buffer.alloc(3200).toString('base64'); // 100ms @ 16kHz PCM16 mono
+    let count = 0;
+    const totalChunks = 12; // 1.2s trailing silence at real-time 100ms rate
+    silenceFlushTimer = setInterval(() => {
+      if (closed) {
+        clearTurnTimers();
+        return;
+      }
+      count++;
+      if (count <= totalChunks) {
+        sendUpstream(
+          JSON.stringify({
+            realtimeInput: {
+              audio: {
+                data: silenceBase64,
+                mimeType: 'audio/pcm;rate=16000'
+              }
+            }
+          })
+        );
+      } else {
+        clearInterval(silenceFlushTimer);
+        silenceFlushTimer = null;
+        flushingSilence = false;
+        sendUpstream(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+        if (hasTurnOutput) {
+          scheduleTurnComplete();
+        }
+      }
+    }, 100);
+  }
+
+  function cleanupSession() {
+    if (closed) return;
+    closed = true;
+    clearTurnTimers();
+    clearTimeout(sessionLimitTimer);
+    clearInterval(pingInterval);
+    if (upstreamWs && (upstreamWs.readyState === WebSocket.OPEN || upstreamWs.readyState === WebSocket.CONNECTING)) {
+      try {
+        upstreamWs.close(1000, 'Client session ended');
+      } catch (_) {}
+    }
+  }
+
+  // Enforce 5-minute maximum session length
+  const sessionLimitTimer = setTimeout(() => {
+    if (closed) return;
+    console.warn(`[WS LiveTranslate] Session limit (${LIVE_SESSION_MAX_MS}ms) reached for caller=${auth.user?.accountId}`);
+    sendClientJson(clientWs, {
+      type: 'error',
+      code: 'SESSION_LIMIT_REACHED',
+      message: `Session maximum duration (${Math.round(LIVE_SESSION_MAX_MS / 1000)}s) reached`
+    });
+    cleanupSession();
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.close(1000, 'Session limit reached');
+    }
+  }, LIVE_SESSION_MAX_MS);
+
+  // Keepalive ping every 25s
+  const pingInterval = setInterval(() => {
+    if (clientWs.readyState === WebSocket.OPEN) {
+      try {
+        clientWs.ping();
+      } catch (_) {}
+    }
+    if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
+      try {
+        upstreamWs.ping();
+      } catch (_) {}
+    }
+  }, 25000);
+
+  clientWs.on('message', (data, isBinary) => {
+    if (closed) return;
+    if (isBinary) {
+      const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+      if (buf.length === 0) return;
+      lastClientAudioAt = Date.now();
+      sendUpstream(
+        JSON.stringify({
+          realtimeInput: {
+            audio: {
+              data: buf.toString('base64'),
+              mimeType: 'audio/pcm;rate=16000'
+            }
+          }
+        })
+      );
+      return;
+    }
+
+    let ctrl;
+    try {
+      ctrl = JSON.parse(data.toString('utf8'));
+    } catch (_) {
+      sendClientJson(clientWs, { type: 'error', code: 'INVALID_JSON', message: 'Invalid JSON control frame' });
+      return;
+    }
+
+    if (ctrl.type === 'audio' && typeof ctrl.data === 'string') {
+      lastClientAudioAt = Date.now();
+      sendUpstream(
+        JSON.stringify({
+          realtimeInput: {
+            audio: {
+              data: ctrl.data,
+              mimeType: ctrl.mimeType || 'audio/pcm;rate=16000'
+            }
+          }
+        })
+      );
+    } else if (ctrl.type === 'audio_stream_end' || ctrl.type === 'end_of_turn') {
+      startSilenceFlushAndEnd();
+    } else if (ctrl.type === 'ping') {
+      sendClientJson(clientWs, { type: 'pong', timestamp: Date.now() });
+    }
+  });
+
+  clientWs.on('close', () => {
+    cleanupSession();
+  });
+
+  clientWs.on('error', (err) => {
+    console.error('[WS LiveTranslate] Client WS error:', err.message);
+    cleanupSession();
+  });
+
+  upstreamWs.on('message', (raw) => {
+    if (closed) return;
+    let msg;
+    try {
+      msg = JSON.parse(raw.toString('utf8'));
+    } catch (e) {
+      return;
+    }
+
+    if (msg.error) {
+      sendClientJson(clientWs, {
+        type: 'error',
+        code: String(msg.error.code || 'UPSTREAM_ERROR'),
+        message: msg.error.message || 'Upstream Gemini Live error'
+      });
+      return;
+    }
+
+    const sc = msg.serverContent;
+    if (!sc) return;
+
+    if (sc.inputTranscription && typeof sc.inputTranscription.text === 'string' && sc.inputTranscription.text.length > 0) {
+      sendClientJson(clientWs, {
+        type: 'input_transcript',
+        text: sc.inputTranscription.text,
+        languageCode: sc.inputTranscription.languageCode || ''
+      });
+    }
+
+    if (sc.outputTranscription && typeof sc.outputTranscription.text === 'string' && sc.outputTranscription.text.length > 0) {
+      hasTurnOutput = true;
+      sendClientJson(clientWs, {
+        type: 'output_transcript',
+        text: sc.outputTranscription.text,
+        languageCode: sc.outputTranscription.languageCode || targetLanguageCode
+      });
+      scheduleTurnComplete();
+    }
+
+    if (sc.modelTurn && Array.isArray(sc.modelTurn.parts)) {
+      for (const part of sc.modelTurn.parts) {
+        if (part.inlineData && typeof part.inlineData.data === 'string' && part.inlineData.data.length > 0) {
+          const pcmBuffer = Buffer.from(part.inlineData.data, 'base64');
+          if (pcmBuffer.length > 0 && clientWs.readyState === WebSocket.OPEN) {
+            const audible = hasAudiblePcmSample(pcmBuffer);
+            if (audible) {
+              hasTurnOutput = true;
+              consecutiveSilentOutChunks = 0;
+              clientWs.send(pcmBuffer, { binary: true });
+              scheduleTurnComplete();
+            } else if (hasTurnOutput) {
+              consecutiveSilentOutChunks++;
+              // Forward first trailing silent chunk for clean decay, skip subsequent zero-padding
+              if (consecutiveSilentOutChunks === 1) {
+                clientWs.send(pcmBuffer, { binary: true });
+              }
+              if (
+                consecutiveSilentOutChunks >= 3 &&
+                !flushingSilence &&
+                Date.now() - lastClientAudioAt >= 600
+              ) {
+                emitTurnComplete();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (sc.turnComplete || sc.generationComplete) {
+      emitTurnComplete();
+    }
+  });
+
+  upstreamWs.on('close', (code, reasonBuf) => {
+    if (closed) return;
+    const reason = reasonBuf ? reasonBuf.toString('utf8') : '';
+    if (hasTurnOutput) {
+      emitTurnComplete();
+    }
+    if (code !== 1000 && code !== 1005) {
+      sendClientJson(clientWs, {
+        type: 'error',
+        code: `UPSTREAM_CLOSED_${code}`,
+        message: reason || `Upstream Live session closed (${code})`
+      });
+    }
+    cleanupSession();
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.close(1000, 'Upstream closed');
+    }
+  });
+
+  upstreamWs.on('error', (err) => {
+    if (closed) return;
+    console.error('[WS LiveTranslate] Upstream WS error:', err.message);
+    sendClientJson(clientWs, {
+      type: 'error',
+      code: 'UPSTREAM_WS_ERROR',
+      message: err.message
+    });
+    cleanupSession();
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.close(1011, 'Upstream error');
+    }
+  });
+});
+
+server.on('upgrade', async (req, socket, head) => {
+  let url;
+  try {
+    url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  } catch (_) {
+    socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+
+  if (url.pathname !== '/ws/live-translate') {
+    socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+
+  try {
+    const auth = await authenticateWsRequest(req, url);
+    if (!auth.authenticated) {
+      console.warn(`[WS SECURITY GATE REJECTED] Path: ${url.pathname}, Reason: ${auth.error}`);
+      const errBody = JSON.stringify({
+        error: 'UNAUTHORIZED',
+        message: 'AIUI 智能体身份未通过验证，拒绝建立 Live Translate WebSocket 会话',
+        reason: auth.error
+      });
+      socket.write(
+        `HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: ${Buffer.byteLength(errBody)}\r\nConnection: close\r\n\r\n${errBody}`
+      );
+      socket.destroy();
+      return;
+    }
+
+    const targetLanguageCode =
+      url.searchParams.get('target') ||
+      url.searchParams.get('targetLanguageCode') ||
+      'en';
+    const echoTargetLanguage = url.searchParams.get('echo') === 'true';
+
+    const upstreamWs = await openUpstreamLiveSession({
+      targetLanguageCode,
+      echoTargetLanguage
+    });
+
+    wss.handleUpgrade(req, socket, head, (clientWs) => {
+      wss.emit('connection', clientWs, req, url, auth, upstreamWs, targetLanguageCode);
+    });
+  } catch (err) {
+    console.error('[WS Upgrade Error]', err.message);
+    socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+    socket.destroy();
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`[Rokid AIUI GCP Proxy] Listening on port ${PORT}`);
   console.log(`[Rokid AIUI GCP Proxy] Target Project: ${PROJECT_ID}, Region: ${REGION}`);
+  getGcpAccessToken().catch(() => {});
 });

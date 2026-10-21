@@ -62,37 +62,36 @@ This document provides the exact metadata, permission purpose strings, network/d
 | :--- | :--- | :--- |
 | **Agent Name (`智能体名称` / `agentName`)** | `GCP Multimodal Agent` | 20 chars (`<= 20` chars; no `test`/`beta`) |
 | **Studio Agent ID (`agentId`)** | `68e11a45486e4b279704e1e3c43b4b4b` | Submitted 2026-10-21 (`displayStatus: "checking"`) |
-| **Category Suggestion (`分类建议`)** | `Efficiency & Tools` / `Translation` (`效率工具` / `翻译与视觉`) | Cloud vision Q&A & bilingual subtitle assistant |
-| **Version (`版本号` / `reviewNativeVersion`)** | `1.0.8` | Server auto-increments `nativeVersion` by `+0.0.1` on each `updateThirdAgent` save |
+| **Category Suggestion (`分类建议`)** | `Efficiency & Tools` / `Translation` (`效率工具` / `翻译与视觉`) | Cloud vision Q&A & live speech-to-speech translator |
+| **Version (`版本号` / `reviewNativeVersion`)** | `1.0.9` | Server auto-increments `nativeVersion` by `+0.0.1` on each `updateThirdAgent` save |
 | **Engine Requirement (`引擎版本` / `engine`)** | `>=0.18.0` | Packaged with `@yodaos-pkg/aix-cli@0.10.1` |
 | **Icon (`应用图标` / `agentLogo`)** | `demos/02-rokid-gcp-multimodal-agent/assets/icon.png` | 512×512 PNG bundled at `assets/icon.png` |
 | **Packaged `.aix` (`安装包路径`)** | `demos/02-rokid-gcp-multimodal-agent/dist/rokid-gcp-multimodal-agent.aix` | Optimized `.aix` archive |
 
-- **Description (`智能体简介` / `agentDesc`, 199 chars, `<= 500` chars, truthful, no absolute claims)**:
-  > Google Cloud Vertex AI and Cloud Translation assistant for Rokid Glasses monochrome-green HUD, featuring camera vision Q&A, live bilingual subtitle translation, and a cloud node status board.
+- **Description (`智能体简介` / `agentDesc`, 203 chars, `<= 500` chars, truthful, no absolute claims)**:
+  > Google Cloud Vertex AI assistant for Rokid Glasses monochrome-green HUD, featuring camera vision Q&A, real-time speech-to-speech translation into English with Gemini Live, and a cloud node status board.
 
-- **Opening Greeting (`开场白` / `agentPrompt`, 144 chars, `<= 300` chars, distinct from description)**:
-  > Hello, I am the GCP Multimodal Agent. Tap the temple to capture a photo for Vertex AI vision analysis or switch to live bilingual subtitles.
+- **Opening Greeting (`开场白` / `agentPrompt`, 204 chars, `<= 300` chars, distinct from description)**:
+  > Hello, I am the GCP Multimodal Agent. Tap the temple to capture a photo for Vertex AI vision analysis or switch to Live Translate for real-time speech-to-speech translation into English with Gemini Live.
 
 ### 2. Permissions & Purpose Strings (`权限声明与用途说明`)
 
 | Permission (`权限名`) | Purpose String (`权限用途说明`) | Code Call Site |
 | :--- | :--- | :--- |
-| `CAMERA` | Used when the user taps the temple in `GEMINI` vision mode to capture a scene photo (`wx.media.createCameraContext().takePhoto`) for Vertex AI Gemini multimodal scene analysis. | `pages/index/index.ink` (`triggerCameraAndGemini`) |
-
-*(Note: Only `CAMERA` is declared because Demo 2 does not invoke microphone recording APIs.)*
+| `CAMERA` | Used when the user taps the temple in `GEMINI` vision mode to capture a scene photo (`wx.media.createCameraContext().takePhoto`) for Vertex AI Gemini multimodal scene analysis. | `pages/index/index.ink` (`triggerGeminiVisionCapture`) |
+| `RECORD_AUDIO` | Microphone streams nearby speech (`navigator.mediaDevices.getUserMedia` + `MediaRecorder`) to Google Cloud Gemini Live for real-time speech-to-speech translation into English in `LIVE TRANSLATE` mode. | `pages/index/index.ink` (`startLiveTranslation`) |
 
 ### 3. Network & Data Disclosure (`网络与数据说明`)
 
-- **Endpoint**: Google Cloud Run authenticated relay proxy at `https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app` (`GCP_CONFIG.cloudRunUrl` in `gcp_config.js`).
+- **Endpoint**: Google Cloud Run authenticated relay proxy at `https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app` (`GCP_CONFIG.cloudRunUrl` / `GCP_CONFIG.liveTranslateBaseUrl` in `gcp_config.js`).
 - **Data Sent**:
   - **Authentication (`POST /api/auth/verify`)**: Rokid account identifier and verification code to obtain a short-lived Bearer session token.
-  - **Vision Analysis (`POST /api/gemini`)**: Base64-encoded JPEG camera frame (`imageBase64`) + text prompt (`prompt`) forwarded to Vertex AI (`gemini-4-argon`).
-  - **Subtitle Translation (`POST /api/translate`)**: Source utterance string (`text`) + target language code (`target: 'en' | 'zh-CN'`) forwarded to Google Cloud Translation API v2.
+  - **Vision Analysis (`POST /api/gemini`)**: Base64-encoded camera frame (`imageBase64`) + text prompt (`prompt`) forwarded to Vertex AI (`gemini-4-argon`).
+  - **Live Speech-to-Speech Translation (`WSS /ws/live-translate`)**: Microphone streams nearby speech (16 kHz mono PCM16 audio chunks) over an authenticated WebSocket to the Cloud Run relay proxy, which forwards it to Google Cloud Vertex AI Gemini Live (`gemini-3.5-live-translate-preview`) and streams back 24 kHz translated English speech audio plus live source and target transcripts. On connection or upstream failure, displays an explicit error notice (`LIVE TRANSLATION UNAVAILABLE · <reason>`) without sample fallbacks.
   - **Health Check (`GET /health`)**: Read-only status probe for the `CLOUD` node telemetry tab.
 - **API Key / Secret Audit (`gcp_config.js`)**:
   - Verified `demos/02-rokid-gcp-multimodal-agent/gcp_config.js` contains **no** `'YOUR_GCP_GEMINI_API_KEY'` placeholder and **no** client-side GCP API keys.
-  - Even if a client-side placeholder existed in legacy revisions, it is unused because all Vertex AI and Cloud Translation calls are routed through the Cloud Run proxy (`https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app`), which authenticates to Google Cloud using server-side Application Default Credentials (ADC).
+  - All Vertex AI and Gemini Live calls are routed through the Cloud Run proxy, which authenticates to Google Cloud using server-side Application Default Credentials (ADC).
 
 ### 4. Preview & Review Assets (`预览与提审素材`)
 
