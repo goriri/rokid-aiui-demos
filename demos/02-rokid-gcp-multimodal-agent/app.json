@@ -4,8 +4,8 @@
   "agentPrompt": "Hello, I am the GCP Multimodal Agent. Tap the temple to capture a photo for Vertex AI vision analysis or switch to Live Translate for real-time speech-to-speech translation into English with Gemini Live.",
   "agentLogo": "assets/icon.png",
   "logo": "assets/icon.png",
-  "version": "1.0.9",
-  "nativeVersion": "1.0.9",
+  "version": "1.0.10",
+  "nativeVersion": "1.0.10",
   "engine": ">=0.18.0",
   "inkVersion": ">=0.18.0",
   "permissions": [

@@ -516,7 +516,8 @@ export default {
       if (this.cameraContext && typeof this.cameraContext.takePhoto === 'function') {
         const photo = await Promise.race([
           this.cameraContext.takePhoto({ quality: 'normal' }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+          // Camera capture can take >4s on device (e.g. while the HUD is being recorded); allow 12s.
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
         ]);
         const buf = toArrayBuffer(photo && photo.data);
         if (buf && wx && typeof wx.arrayBufferToBase64 === 'function') {
@@ -533,6 +534,19 @@ export default {
     }
 
     if (this.turnId !== myTurnId) return;
+
+    // Never ask the model to "describe the scene" without a real photo (it would fabricate one).
+    if (!base64Image) {
+      const notice = `${cameraFallbackNotice || T.geminiCameraUnavailable} · tap to retry`;
+      this.setData({
+        isCapturing: false,
+        isTranslating: false,
+        isBusy: false,
+        statusBadge: 'NO CAM',
+        geminiResult: notice
+      });
+      return;
+    }
 
     this.setData({
       statusBadge: 'ANALYZING…',
@@ -770,23 +784,6 @@ export default {
   drainPendingPlayChunks(myTurnId) {
     if (this.turnId !== myTurnId || !this.liveActive) return;
     if (!this.pendingPlayChunks || this.pendingPlayChunks.length === 0) return;
-
-    const nowMs = Date.now();
-    const nowCtx = (this.audioCtx && this.audioCtx.currentTime) || 0;
-    const currentlyPlaying = this.nextPlayTime && nowCtx < this.nextPlayTime;
-    const sinceLastLoudMic = this.lastSpeechPeakAt ? nowMs - this.lastSpeechPeakAt : 999999;
-
-    // Wait until the speaker finishes their current clause (550ms quiet after loud speech)
-    // before starting speaker playback + echo-mute, so the mic never cuts off mid-sentence.
-    if (!currentlyPlaying && !this.liveStopping && sinceLastLoudMic < 550) {
-      if (this.playDrainTimer) clearTimeout(this.playDrainTimer);
-      const waitMs = Math.max(40, 560 - sinceLastLoudMic);
-      this.playDrainTimer = setTimeout(() => {
-        this.playDrainTimer = null;
-        this.drainPendingPlayChunks(myTurnId);
-      }, waitMs);
-      return;
-    }
 
     try {
       if (!this.audioCtx) {
@@ -1143,7 +1140,9 @@ export default {
           this.turnCompletedSinceLastInput = true;
           this.turnCompletedSinceLastOutput = true;
           this.turnFirstAudioLogged = false;
+          this.turnFirstAudioRxAt = 0;
           this.turnVoiceStartAt = 0;
+          this.silentFlushCount = 0;
           console.log(
             `[LiveTranslate] RX_TURN_COMPLETE turn=${completedTurn} stopping=${!!this.liveStopping} in=${JSON.stringify(this.liveInputBuffer)} out=${JSON.stringify(this.liveOutputBuffer)}`
           );
