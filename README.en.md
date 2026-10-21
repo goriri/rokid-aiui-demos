@@ -4,10 +4,10 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Rokid%20Glasses%201%20%2F%202-40ff5e?style=flat-square&logo=android)](https://aiui.rokid.com/)
 [![SDK](https://img.shields.io/badge/AIUI%200.18-Ink%20SFC%20%2F%20aix--cli%200.10.1-000000?style=flat-square&logo=javascript)](https://github.com/yodaos-project/AIUI)
-[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20(Global)-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
+[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20%2B%20Gemini%20Live%20(Global)-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
 [![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352%20(EN)-25D366?style=flat-square)](#-monochrome-green-scientific-interface-design-system)
 
-This repository is a monorepo of Rokid AR Smart Glasses applications built on the official **Rokid AIUI 0.18** specification (`@yodaos-pkg/aix-cli@0.10.1`) and **Google Cloud Vertex AI**. Both agents follow the **Monochrome-Green Scientific Interface** design system with an all-English UI tailored for the **480 × 352** monochrome-green MicroLED waveguide viewport—delivering pure black-as-transparent optics, high contrast, and low-glare multimodal AI interaction.
+This repository is a monorepo of Rokid AR Smart Glasses applications built on the official **Rokid AIUI 0.18** specification (`@yodaos-pkg/aix-cli@0.10.1`) and **Google Cloud Vertex AI**. Both agents follow the **Monochrome-Green Scientific Interface** design system with an all-English UI tailored for the **480 × 352** monochrome-green MicroLED waveguide viewport—delivering pure black-as-transparent optics, high contrast, real-time speech-to-speech translation, and low-glare multimodal AI interaction.
 
 ---
 
@@ -20,27 +20,28 @@ rokid-aiui-demos/
 │   └── rokid-aiui-lifecycle/              # End-to-end build, ADB deploy, AV recording & Studio submission skill
 ├── demos/
 │   ├── 01-rokid-vision-voice-copilot/     # Demo 1: Vision Voice Copilot (Voice Q&A + Cloud Vision + IMU Dashboard)
-│   │   ├── app.json                       # AIUI >=0.18.0 manifest (least-privilege: CAMERA, RECORD_AUDIO)
+│   │   ├── app.json                       # AIUI >=0.18.0 manifest (permissions: CAMERA, RECORD_AUDIO)
 │   │   ├── app.js
 │   │   ├── pages/index/index.ink          # English monochrome-green HUD (CHAT / VISION / DASHBOARD)
 │   │   ├── assets/icon.png                # 512x512 custom icon
 │   │   ├── assets/review/                 # On-device video (demo.mp4), preview.gif, cover.png & shot1..3.png
 │   │   └── package.json
 │   │
-│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Multimodal Agent (Gemini 4 Vision + Live Subtitles + Cloud Telemetry)
-│       ├── app.json                       # AIUI >=0.18.0 manifest (least-privilege: CAMERA only)
+│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Live Translator v1.0.10 (Gemini Live Speech Translation + Gemini 4 Vision + Cloud Console)
+│       ├── app.json                       # AIUI >=0.18.0 manifest (permissions: CAMERA, RECORD_AUDIO)
 │       ├── app.js
-│       ├── gcp_config.js                  # Cloud Run authenticated relay client config (zero client keys)
+│       ├── gcp_config.js                  # Cloud Run HTTP + WebSocket authenticated relay client config (zero client keys)
 │       ├── server/
-│       │   └── gcp_relay_server.mjs       # Cloud Run / local relay gateway (Vertex AI Global gemini-4-argon)
-│       ├── pages/index/index.ink          # English three-mode monochrome-green HUD (GEMINI / TRANSLATE / CLOUD)
+│       │   └── gcp_relay_server.mjs       # Cloud Run gateway (Vertex AI Global gemini-4-argon + gemini-3.5-live-translate-preview)
+│       ├── scripts/                       # Host E2E & cloud test scripts (test_gemini_image.mjs, test_live_translate.mjs, test_proxy_auth_e2e.mjs)
+│       ├── pages/index/index.ink          # English three-mode monochrome-green HUD (GEMINI 4 LIVE / LIVE TRANSLATE / CLOUD CONSOLE)
 │       ├── assets/icon.png                # 512x512 custom icon
 │       ├── assets/review/                 # On-device video (demo.mp4), preview.gif, cover.png & shot1..3.png
 │       └── package.json
 │
-├── scripts/                               # On-device AV capture, video verification & AIUI Studio upload scripts
+├── scripts/                               # AIUI Studio upload, new agent creation (--create) & review submission scripts
 ├── docs/                                  # Engineering guide & Studio review submission kit
-│   ├── REVIEW_SUBMISSION.md               # Rokid AIUI Studio review & submission kit (with live review status)
+│   ├── REVIEW_SUBMISSION.md               # Rokid AIUI Studio review & submission kit (with live status for all 3 agents)
 │   └── ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md
 │
 ├── package.json                           # Monorepo scripts (preview, pack, relay & proxy E2E tests)
@@ -50,9 +51,21 @@ rokid-aiui-demos/
 ```
 
 > 📖 **Engineering & Review Documentation**:
-> - [Rokid AIUI End-to-End Lifecycle Skill (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md): Covers AIUI 0.18 spec compliance, ADB on-device deployment, synchronized AV screen/audio recording, Vertex AI Global `gemini-4-argon` integration, and AIUI Studio submission.
-> - [Rokid AIUI Studio Review & Submission Kit (`REVIEW_SUBMISSION.md`)](docs/REVIEW_SUBMISSION.md): Exact submission metadata, permission purpose strings, network/data disclosures, and current Studio review status for both agents.
-> - [Rokid AIUI Development, Testing, Packaging & Deployment Guide](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md): Dual-platform deployment, `cache.zip` regex validation rules, and Cloud Run authentication relay architecture.
+> - [Rokid AIUI End-to-End Lifecycle Skill (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md): Covers AIUI 0.18 spec compliance, ADB on-device deployment, omnidirectional mic capture & WebSocket audio streaming, synchronized AV recording, Vertex AI Global model integration, and AIUI Studio submission.
+> - [Rokid AIUI Studio Review & Submission Kit (`REVIEW_SUBMISSION.md`)](docs/REVIEW_SUBMISSION.md): Exact submission metadata, permission purpose strings, network/data disclosures, and current Studio review status for `GCP Live Translator` (current source of truth) and the two earlier submitted agents.
+> - [Rokid AIUI Development, Testing, Packaging & Deployment Guide](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md): Gemini Live WebSocket translation relay protocol, `cache.zip` regex validation rules, and Cloud Run tagged no-traffic revision deployment.
+
+---
+
+## 📊 Rokid AIUI Studio Submission Status
+
+| Agent Name (`agentName`) | Source / Version Notes | Studio `agentId` | Studio `reviewNativeVersion` | Status (`displayStatus`) |
+| :--- | :--- | :--- | :---: | :---: |
+| **Vision Voice Copilot** | `demos/01-rokid-vision-voice-copilot` | `059b26f3ffcd47ab8280a2d176b0f88a` | `1.0.9` | `checking` |
+| **GCP Multimodal Agent** | `demos/02-rokid-gcp-multimodal-agent` (snapshot at `git 099e5fb`) | `68e11a45486e4b279704e1e3c43b4b4b` | `1.0.8` | `checking` |
+| **GCP Live Translator** | `demos/02-rokid-gcp-multimodal-agent` (current package `v1.0.10`) | `48c2e202270c469886dde77ef1ecc936` | `1.0.2` (= package `v1.0.10`) | `checking` |
+
+> 💡 **Note on `nativeVersion` Auto-Increment**: The Rokid AIUI Studio backend (`updateThirdAgent`) automatically increments `nativeVersion` by `+0.0.1` on every save call (new agents created via `--create` / `saveAIUIAgent` start at `1.0.0`). [`scripts/studio_upload.mjs`](scripts/studio_upload.mjs) supports `--dry-run` (default read-only preview), `--execute` (live OSS upload & single save), and `--create` (create a brand-new Studio agent and wire its review submission path).
 
 ---
 
@@ -64,7 +77,9 @@ An integrated hardware-software English HUD Copilot built on Rokid Glasses nativ
 
 ![Demo 1 Preview](demos/01-rokid-vision-voice-copilot/assets/review/preview.gif)
 
-🎬 **On-Device Review Video (with Audio)**: [demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4](demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4)
+🎬 **On-Device Review Video & Assets**:
+- Review Video (with Audio): [demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4](demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4)
+- 1080×1080 Cover Image: [demos/01-rokid-vision-voice-copilot/assets/review/cover.png](demos/01-rokid-vision-voice-copilot/assets/review/cover.png)
 
 #### Core Capabilities:
 1. **Hands-Free Voice Interaction (`CHAT` Mode)**:
@@ -83,23 +98,33 @@ An integrated hardware-software English HUD Copilot built on Rokid Glasses nativ
 
 ---
 
-### 🚀 Demo 2: GCP Multimodal Agent (`02-rokid-gcp-multimodal-agent`)
+### 🚀 Demo 2: GCP Live Translator (`02-rokid-gcp-multimodal-agent`, v1.0.10)
 
-Integrates **Google Cloud** AI services (**Vertex AI Gemini 4 `gemini-4-argon` on `locations/global`**, Cloud Translation v2, and Cloud Text-to-Speech v1) into an all-English Rokid Glasses HUD (following least-privilege rules with `["CAMERA"]` as its only declared permission).
+Integrates **Google Cloud Vertex AI** real-time speech-to-speech translation (**`gemini-3.5-live-translate-preview` on `locations/global`**) and spatial vision reasoning (**Gemini 4 `gemini-4-argon` on `locations/global`**) into an all-English Rokid Glasses 480×352 HUD (declared permissions: `["CAMERA", "RECORD_AUDIO"]`).
 
 ![Demo 2 Preview](demos/02-rokid-gcp-multimodal-agent/assets/review/preview.gif)
 
-🎬 **On-Device Review Video (with Audio)**: [demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4](demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4)
+🎬 **On-Device Review Video & Assets**:
+- Review Video (with Audio): [demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4](demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4)
+- 1080×1080 Cover Image: [demos/02-rokid-gcp-multimodal-agent/assets/review/cover.png](demos/02-rokid-gcp-multimodal-agent/assets/review/cover.png)
 
 #### Core Capabilities:
-1. **Vertex AI Gemini 4 (`gemini-4-argon`) Spatial Multimodal Reasoning (`GEMINI` Mode)**:
-   - Captures a photo from the front camera and sends it through the authenticated Cloud Run proxy to Vertex AI `locations/global` (`gemini-4-argon`) for live scene analysis and spoken feedback.
-2. **AR Live Bilingual Subtitles (`TRANSLATE` Mode)**:
-   - Powered by Google Cloud Translation API v2, rendering bilingual subtitles in the upper HUD safe zone with TTS playback.
-3. **GCP Node Telemetry & Auth Console (`CLOUD` Mode)**:
-   - Monitors the Cloud Run relay `/health` endpoint, Vertex AI `gemini-4-argon` node connectivity, and round-trip latency (RTT).
+1. **Real Speech-to-Speech Translation with Gemini Live (`LIVE TRANSLATE` Mode)**:
+   - **End-to-End Audio Pipeline**: Glasses microphone (`navigator.mediaDevices.getUserMedia` with `microphoneMode: 'omnidirectional'`, 16 kHz mono PCM16 extracted from `MediaRecorder` `audio/wav` chunks with `0.7` gain clamping) → authenticated WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`** (auto source language detection → English) → **24 kHz PCM** translated speech playback (`AudioContext.createBuffer(1, n, 24000)`) + live source (`input_transcript` with detected language badge) and target (`output_transcript`) subtitles on the HUD;
+   - **Echo Control**: Uplink is muted (sending zero-filled PCM frames to preserve stream timing) while translated audio playback is running (`nextPlayTime + 300ms`), preventing the omnidirectional microphone from picking up the glasses speaker;
+   - **Session Lifecycle & No Sample Fallback**: Temple tap starts/stops the live session with an automatic stop at **4:50 (`290s`)** under the 5:00 server cap. The sample-sentence / text-translate path is completely removed; errors surface an explicit `LIVE TRANSLATION UNAVAILABLE · <reason>` status.
+2. **Vertex AI Gemini 4 (`gemini-4-argon`) Spatial Vision Q&A (`GEMINI 4 LIVE` Mode)**:
+   - A temple tap captures a photo from the front camera (`CameraContext.takePhoto({ quality: 'normal' })` with a **12s timeout**) and sends it via Cloud Run `/api/gemini` to **Vertex AI Global `gemini-4-argon`** for live scene analysis and spoken feedback;
+   - **No Fabricated Scenes**: If no camera photo is returned or capture times out, the HUD displays `"Camera unavailable · tap to retry"` (`NO CAM`) and **never** asks the model to invent a scene.
+3. **GCP Node Telemetry & Auth Console (`CLOUD CONSOLE` Mode)**:
+   - Monitors the Cloud Run relay `/health` endpoint, Rokid Metis authentication status, project ID, and Vertex AI `gemini-4-argon` / `gemini-3.5-live-translate-preview` connectivity.
 
-| Mode 1: `GEMINI` Vision Reasoning | Mode 2: `TRANSLATE` Live Subtitles | Mode 3: `CLOUD` Node Health Console |
+#### Known Limits:
+- **Translates All Nearby Speech**: Because `microphoneMode: 'omnidirectional'` is required to capture speakers in front of the wearer, it translates **all nearby speech** (including room chatter or background speakers);
+- **Network Connectivity Required**: Requires an active **phone companion Bluetooth data link** or **Wi-Fi** connection to reach the Cloud Run relay;
+- **First-Audio Latency**: Typical first-audio end-to-end latency over the Bluetooth companion link is **~4s** (~3s upstream Gemini Live generation + Bluetooth/WebSocket transit).
+
+| Mode 1: `GEMINI 4 LIVE` Vision Reasoning | Mode 2: `LIVE TRANSLATE` Speech-to-Speech | Mode 3: `CLOUD CONSOLE` Node Health |
 | :---: | :---: | :---: |
 | ![Gemini Vision](demos/02-rokid-gcp-multimodal-agent/assets/review/shot1.png) | ![Live Translate](demos/02-rokid-gcp-multimodal-agent/assets/review/shot2.png) | ![Cloud Telemetry](demos/02-rokid-gcp-multimodal-agent/assets/review/shot3.png) |
 
@@ -109,66 +134,78 @@ Integrates **Google Cloud** AI services (**Vertex AI Gemini 4 `gemini-4-argon` o
 
 Per the official Rokid specification ([Account Authorization & Verification](https://rokid.yuque.com/ub8h5n/bkz4ul/0f9c5f6b12acbf80ce81e0eafd0220b8?singleDoc#)), accessing Google Cloud from Rokid Glasses (running on a lightweight QuickJS runtime) requires agent identity verification and cloud resource protection without shipping client-side secrets.
 
-This project deploys a production **Google Cloud Run Authenticated Relay Service (`rokid-aiui-gcp-proxy`)** enforcing a strict **Rokid Metis Agent Identity Gate**:
+This project deploys a production **Google Cloud Run Authenticated Relay Service (`rokid-aiui-gcp-proxy`)** enforcing a strict **Rokid Metis Agent Identity Gate** across both HTTP multimodal calls and WebSocket bidirectional live translation:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as User (Rokid Glasses / App)
-    participant Agent as AIUI Agent (Ink / On-Device)
+    actor User as Wearer / Nearby Speaker
+    participant Agent as AIUI Agent (Rokid Glasses HUD)
     participant Proxy as Cloud Run Relay Proxy (rokid-aiui-gcp-proxy)
     participant Metis as Rokid Metis Platform (rcs.rokid.com)
-    participant GCP as Google Cloud (Vertex AI / Translate / TTS)
+    participant GCP as Google Cloud Vertex AI (locations/global)
 
-    Note over User,Agent: Permission & On-Device Authorization
-    Agent->>Agent: checkUserAuth() checks authorization
-    Agent->>Agent: getProfile() retrieves accountId & one-time code (valid 5 min)
-
-    Note over Agent,Proxy: Identity Verification & Access Gate
+    Note over User,Agent: Permissions & On-Device Auth (CAMERA + RECORD_AUDIO)
     Agent->>Proxy: POST /api/auth/verify { accountId, code }
     Proxy->>Metis: POST /metis/openApi/v1/checkAccountCode { accountId, code, developerSk }
-    Metis-->>Proxy: Returns { code: 1, data: { checkResult: true/false, mobile } }
+    Metis-->>Proxy: Returns { code: 1, data: { checkResult: true, mobile } }
+    Proxy-->>Agent: 200 OK { sessionToken (HMAC-SHA256 Bearer, 1h TTL) }
 
-    alt Verification Failed (Unauthorized / Expired / Forged Code)
-        Proxy-->>Agent: HTTP 401 Unauthorized (Blocked at gate, zero GCP consumption)
-    else Verification Passed (Trusted Agent)
-        Proxy->>Proxy: Issues HMAC-SHA256 Session Bearer Token
-        Proxy-->>Agent: 200 OK { sessionToken, expiresIn: 3600 }
-        
-        Note over Agent,GCP: Authorized Google Cloud Service Calls
-        Agent->>Proxy: POST /api/gemini (with Bearer Token)
-        Proxy->>Proxy: Verifies signature & fetches GCP token via Cloud Run Metadata
-        Proxy->>GCP: Invokes Vertex AI (locations/global gemini-4-argon)
-        GCP-->>Proxy: Returns multimodal analysis result
-        Proxy-->>Agent: 480x352 HUD response payload
+    alt Mode 1: GEMINI 4 LIVE Vision Q&A (Tap to capture, 12s takePhoto timeout)
+        User->>Agent: Temple tap captures camera photo
+        Agent->>Proxy: POST /api/gemini (Bearer Token + Base64 photo)
+        Proxy->>GCP: gemini-4-argon:generateContent (locations/global)
+        GCP-->>Proxy: Scene analysis text
+        Proxy-->>Agent: 480x352 HUD response + TTS readback
+    else Mode 2: LIVE TRANSLATE Speech-to-Speech (4:50 auto-stop)
+        User->>Agent: Temple tap starts omnidirectional mic (16kHz PCM16)
+        Agent->>Proxy: WSS /ws/live-translate?token=<Bearer>&target=en
+        Proxy->>GCP: BidiGenerateContent setup (gemini-3.5-live-translate-preview)
+        loop Bidirectional stream (uplink muted during playback for echo control)
+            Agent->>Proxy: Binary 16kHz PCM16 audio chunks
+            Proxy->>GCP: realtimeInput.audio (audio/pcm;rate=16000)
+            GCP-->>Proxy: 24kHz English speech chunks + source/target transcripts
+            Proxy-->>Agent: Binary 24kHz PCM16 + JSON input/output_transcript
+        end
     end
 ```
 
 ### 1. Cloud Run Production Endpoint
 - **Cloud Run Service**: `rokid-aiui-gcp-proxy`
 - **Production URL**: `https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app`
-- **GCP Project**: `cellular-cider-495602-r9` (Cloud Run Region: `us-central1`; Vertex AI Location: `global` / Model: `gemini-4-argon`)
+- **Active Revision**: `rokid-aiui-gcp-proxy-00006-vin` (serving **100% traffic** across `/ws/live-translate`, `/api/gemini`, `/api/auth/verify`, `/api/translate`, `/api/tts`, and `/health`; revisions `00001`–`00003` are kept for rollback)
+- **GCP Project & Models**: `cellular-cider-495602-r9` (Cloud Run Region: `us-central1`; Vertex AI Location: `global`; Vision Model: `gemini-4-argon`; Live Translation Model: `gemini-3.5-live-translate-preview`)
 - **Health Check**: `GET https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app/health`
 
 ### 2. Authentication & Security Gate Rules
-1. **Unauthenticated Requests Blocked**: Requests missing a valid Bearer Session Token or verification code immediately return `401 Unauthorized`.
+1. **Unauthenticated Requests Blocked**: HTTP requests and WebSocket upgrade handshakes missing a valid Bearer Session Token or verification code immediately return `401 Unauthorized` without opening an upstream Vertex AI session.
 2. **One-Time Code Verification**: The `code` issued by Rokid Metis expires in 5 minutes and is invalidated after a single verification to prevent replay attacks.
 3. **Secret Isolation**: `ROKID_DEVELOPER_SK` is stored exclusively in Cloud Run server environment variables; zero secrets or API keys exist in the client package.
 4. **Keyless Cloud Run Auth**: The Cloud Run container acquires Google Cloud access tokens automatically via the GCP Instance Metadata service (ADC).
 
 ### 3. End-to-End Proxy Verification Suite
-Run `PROXY_URL=https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app node demos/02-rokid-gcp-multimodal-agent/scripts/test_proxy_auth_e2e.mjs`:
+Run the three host test suites to verify the Cloud Run auth gate, Gemini 4 image reasoning, and Gemini Live speech-to-speech translation:
+```bash
+# 1. Auth gatekeeper & REST proxy E2E test suite
+npm run test:proxy
+
+# 2. Vertex AI Global gemini-4-argon live image reasoning test
+node demos/02-rokid-gcp-multimodal-agent/scripts/test_gemini_image.mjs
+
+# 3. Vertex AI Global gemini-3.5-live-translate-preview WebSocket speech translation test
+node demos/02-rokid-gcp-multimodal-agent/scripts/test_live_translate.mjs
+```
+
 | Test Case | Expected Behavior | Status | Measured Latency |
 | :--- | :--- | :---: | :---: |
-| `GET /health` | Returns service health, project info & auth protocol | ✅ PASS | 678 ms |
+| `GET /health` | Returns service health, project info & `gemini-4-argon` model | ✅ PASS | 678 ms |
 | `POST /api/gemini` (No credentials) | Security gate blocks request with HTTP 401 | ✅ PASS | 403 ms |
-| `POST /api/translate` (No credentials) | Security gate blocks request with HTTP 401 | ✅ PASS | 243 ms |
+| `WSS /ws/live-translate` (No credentials) | WebSocket upgrade gate blocks request with HTTP 401 | ✅ PASS | ~220 ms |
 | `POST /api/auth/verify` (Invalid code) | Rejects invalid code with HTTP 401 | ✅ PASS | 206 ms |
 | `POST /api/auth/verify` (Valid agent) | Verifies agent & issues Bearer Session Token | ✅ PASS | 245 ms |
-| `POST /api/translate` (Valid token) | Invokes Cloud Translation v2 & returns translation | ✅ PASS | 1423 ms |
-| `POST /api/gemini` (Valid token) | Invokes Vertex AI Gemini 4 (`gemini-4-argon`) | ✅ PASS | 4350 ms |
-| `POST /api/tts` (Valid token) | Invokes Cloud Text-to-Speech & synthesizes audio | ✅ PASS | 781 ms |
-| `POST /api/translate` (X-Rokid headers) | Single-shot header verification & translation call | ✅ PASS | 373 ms |
+| `POST /api/gemini` (`test_gemini_image.mjs`) | Invokes Vertex AI Global `gemini-4-argon` & describes test image | ✅ PASS | ~4.3 s |
+| `WSS /ws/live-translate` (`test_live_translate.mjs`) | Streams 16 kHz speech → `gemini-3.5-live-translate-preview` → 24 kHz English audio + transcripts | ✅ PASS | ~3.0 s (first audio) |
+| `POST /api/translate` & `/api/tts` (Valid token) | Invokes Cloud Translation v2 & Cloud Text-to-Speech v1 | ✅ PASS | ~1.1 s |
 
 ---
 
@@ -239,9 +276,9 @@ npx aix launch-page -s <device_serial> dist/<name>.aix pages/index/index
 ### 5. Temple Touchpad & Keyboard Mapping
 | Temple Gesture | Keyboard Key | Action |
 | :--- | :--- | :--- |
-| **Single Tap** | `Enter` / `Space` | Capture photo / Start voice turn / Next subtitle / Interrupt TTS |
-| **Swipe Forward / Back** | `↓` (`ArrowDown`) / `↑` (`ArrowUp`) | Cycle through the three HUD modes |
-| **Back / Exit** | `Backspace` / `Escape` | Never calls `preventDefault()`, allowing native AIUI 0.18 exit/back navigation |
+| **Single Tap** | `Enter` / `Space` | Capture photo / Start or stop Gemini Live speech translation / Start voice turn / Interrupt TTS |
+| **Swipe Forward / Back** | `↓` (`ArrowDown`) / `↑` (`ArrowUp`) | Cycle through the three HUD modes (automatically closes any active live translation session) |
+| **Back / Exit** | `Backspace` / `Escape` | Tears down live translation resources and never calls `preventDefault()`, allowing native AIUI 0.18 exit/back navigation |
 
 ---
 

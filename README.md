@@ -4,10 +4,10 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Rokid%20Glasses%201%20%2F%202-40ff5e?style=flat-square&logo=android)](https://aiui.rokid.com/)
 [![SDK](https://img.shields.io/badge/AIUI%200.18-Ink%20SFC%20%2F%20aix--cli%200.10.1-000000?style=flat-square&logo=javascript)](https://github.com/yodaos-project/AIUI)
-[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20(Global)-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
+[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20%2B%20Gemini%20Live%20(Global)-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
 [![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352%20(EN)-25D366?style=flat-square)](#-单绿色科学界面设计系统规范)
 
-本项目为基于 **Rokid AIUI 0.18** 官方规范（`@yodaos-pkg/aix-cli@0.10.1`）与 **Google Cloud Vertex AI** 打造的 Rokid AR 智能眼镜应用集合（Monorepo）。全系采用纯英文 **单绿色科学界面设计系统 (Monochrome-Green Scientific Interface, English UI)**，在 **480 × 352** 单绿 MicroLED 光波导视口下，提供纯净透明、高对比度、低眩光的 AR 视觉与多模态 AI 交互体验。
+本项目为基于 **Rokid AIUI 0.18** 官方规范（`@yodaos-pkg/aix-cli@0.10.1`）与 **Google Cloud Vertex AI** 打造的 Rokid AR 智能眼镜应用集合（Monorepo）。全系采用纯英文 **单绿色科学界面设计系统 (Monochrome-Green Scientific Interface, English UI)**，在 **480 × 352** 单绿 MicroLED 光波导视口下，提供纯净透明、高对比度、低眩光的 AR 视觉、实时语音同传与多模态 AI 交互体验。
 
 ---
 
@@ -20,27 +20,28 @@ rokid-aiui-demos/
 │   └── rokid-aiui-lifecycle/              # 端到端构建、ADB 真机部署、音画内录与 Studio 提审技能
 ├── demos/
 │   ├── 01-rokid-vision-voice-copilot/     # Demo 1: Vision Voice Copilot (语音问答 + 云端视觉识图 + IMU 姿态仪表盘)
-│   │   ├── app.json                       # AIUI >=0.18.0 清单 (最小权限: CAMERA, RECORD_AUDIO)
+│   │   ├── app.json                       # AIUI >=0.18.0 清单 (权限: CAMERA, RECORD_AUDIO)
 │   │   ├── app.js
 │   │   ├── pages/index/index.ink          # 纯英文单绿 HUD (CHAT / VISION / DASHBOARD)
 │   │   ├── assets/icon.png                # 512x512 定制图标
-│   │   ├── assets/review/                 # 真机实录视频 (demo.mp4)、动图 (preview.gif)、封面与截图 (shot1..3.png)
+│   │   ├── assets/review/                 # 真机实录视频 (demo.mp4)、动图 (preview.gif)、封面 (cover.png) 与截图 (shot1..3.png)
 │   │   └── package.json
 │   │
-│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Multimodal Agent (Gemini 4 视觉推理 + 实时双语同传 + 云端监控)
-│       ├── app.json                       # AIUI >=0.18.0 清单 (最小权限: 仅 CAMERA)
+│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Live Translator v1.0.10 (Gemini Live 实时语音同传 + Gemini 4 视觉 + 云端监控)
+│       ├── app.json                       # AIUI >=0.18.0 清单 (权限: CAMERA, RECORD_AUDIO)
 │       ├── app.js
-│       ├── gcp_config.js                  # Cloud Run 鉴权中继客户端配置 (零客户端密钥)
+│       ├── gcp_config.js                  # Cloud Run HTTP + WebSocket 鉴权中继配置 (零客户端密钥)
 │       ├── server/
-│       │   └── gcp_relay_server.mjs       # Cloud Run / 本地中继网关 (Vertex AI Global gemini-4-argon)
-│       ├── pages/index/index.ink          # 纯英文三模态单绿 HUD (GEMINI / TRANSLATE / CLOUD)
+│       │   └── gcp_relay_server.mjs       # Cloud Run 网关 (Vertex AI Global gemini-4-argon + gemini-3.5-live-translate-preview)
+│       ├── scripts/                       # 端到端与云端验证脚本 (test_gemini_image.mjs, test_live_translate.mjs, test_proxy_auth_e2e.mjs)
+│       ├── pages/index/index.ink          # 纯英文三模态单绿 HUD (GEMINI 4 LIVE / LIVE TRANSLATE / CLOUD CONSOLE)
 │       ├── assets/icon.png                # 512x512 定制图标
-│       ├── assets/review/                 # 真机实录视频 (demo.mp4)、动图 (preview.gif)、封面与截图 (shot1..3.png)
+│       ├── assets/review/                 # 真机实录视频 (demo.mp4)、动图 (preview.gif)、封面 (cover.png) 与截图 (shot1..3.png)
 │       └── package.json
 │
-├── scripts/                               # 真机音画采集、视频质检与 AIUI Studio 自动上传提审脚本
+├── scripts/                               # AIUI Studio 自动打包上传、创建新智能体 (--create) 与提审脚本
 ├── docs/                                  # 工程开发指南与提审材料清单
-│   ├── REVIEW_SUBMISSION.md               # Rokid AIUI Studio 构建与提审手册 (含线上提审状态)
+│   ├── REVIEW_SUBMISSION.md               # Rokid AIUI Studio 构建与提审手册 (含三个线上智能体状态)
 │   └── ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md
 │
 ├── package.json                           # 全局 Monorepo 脚本 (预览、打包、中继与端到端测试)
@@ -50,10 +51,21 @@ rokid-aiui-demos/
 ```
 
 > 📖 **完整工程与提审文档**:
-> - [Rokid AIUI 端到端生命周期运维技能 (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md)：涵盖 AIUI 0.18 规范检查、ADB 真机直装、真机音画同步内录、Vertex AI Global `gemini-4-argon` 接入与 Studio 提审全流程。
-> - [Rokid AIUI Studio 构建与提审手册 (`REVIEW_SUBMISSION.md`)](docs/REVIEW_SUBMISSION.md)：包含两个智能体的精确提审元数据、权限说明、网络披露与当前线上审核状态。
-> - [Rokid AIUI 智能体开发、测试、打包与部署全流程工程指南](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md)：涵盖双平台部署、`cache.zip` 正则校验防坑与 Cloud Run 鉴权中继架构。
+> - [Rokid AIUI 端到端生命周期运维技能 (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md)：涵盖 AIUI 0.18 规范检查、ADB 真机直装、全向麦拾音与 WebSocket 音频流、真机音画同步内录、Vertex AI Global 模型接入与 Studio 提审全流程。
+> - [Rokid AIUI Studio 构建与提审手册 (`REVIEW_SUBMISSION.md`)](docs/REVIEW_SUBMISSION.md)：包含 `GCP Live Translator`（主线最新）等三个智能体的精确提审元数据、权限用途、数据披露与当前线上审核状态。
+> - [Rokid AIUI 智能体开发、测试、打包与部署全流程工程指南](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md)：涵盖 Gemini Live WebSocket 同传中继协议、`cache.zip` 正则校验防坑与 Cloud Run 无流量标签灰度发布。
 
+---
+
+## 📊 Rokid AIUI Studio 线上提审状态
+
+| 智能体名称 (`agentName`) | 源码目录 / 版本说明 | Studio `agentId` | 线上 `reviewNativeVersion` | 状态 (`displayStatus`) |
+| :--- | :--- | :--- | :---: | :---: |
+| **Vision Voice Copilot** | `demos/01-rokid-vision-voice-copilot` | `059b26f3ffcd47ab8280a2d176b0f88a` | `1.0.9` | `checking` |
+| **GCP Multimodal Agent** | `demos/02-rokid-gcp-multimodal-agent` (历史快照 `git 099e5fb`) | `68e11a45486e4b279704e1e3c43b4b4b` | `1.0.8` | `checking` |
+| **GCP Live Translator** | `demos/02-rokid-gcp-multimodal-agent` (当前主线包 `v1.0.10`) | `48c2e202270c469886dde77ef1ecc936` | `1.0.2` (= package `v1.0.10`) | `checking` |
+
+> 💡 **关于 `nativeVersion` 自动递增**：Rokid AIUI Studio 后端每次保存（`updateThirdAgent`）会自动将线上 `nativeVersion` 递增 `+0.0.1`（新建智能体通过 `--create` / `saveAIUIAgent` 从 `1.0.0` 起步）。自动化上传脚本 [`scripts/studio_upload.mjs`](scripts/studio_upload.mjs) 支持 `--dry-run`（默认只读预览）、`--execute`（实网上传并单次保存）以及 `--create`（创建全新智能体并关联提审路径）。
 
 ---
 
@@ -65,7 +77,9 @@ rokid-aiui-demos/
 
 ![Demo 1 Preview](demos/01-rokid-vision-voice-copilot/assets/review/preview.gif)
 
-🎬 **真机实录有声视频**：[demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4](demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4)
+🎬 **真机实录有声视频与提审素材**：
+- 演示视频：[demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4](demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4)
+- 1080×1080 封面图：[demos/01-rokid-vision-voice-copilot/assets/review/cover.png](demos/01-rokid-vision-voice-copilot/assets/review/cover.png)
 
 #### 核心能力：
 1. **全双工语音交互（`CHAT` Mode）**：
@@ -84,23 +98,33 @@ rokid-aiui-demos/
 
 ---
 
-### 🚀 Demo 2: GCP Multimodal Agent / Google Cloud AI 多模态与同传助手 (`02-rokid-gcp-multimodal-agent`)
+### 🚀 Demo 2: GCP Live Translator / Google Cloud 实时语音同传与多模态助手 (`02-rokid-gcp-multimodal-agent`, v1.0.10)
 
-将 **Google Cloud** 前沿云端 AI 能力（**Vertex AI Gemini 4 `gemini-4-argon` on `locations/global`**、Cloud Translation v2、Cloud Text-to-Speech v1）无缝整合至 Rokid 眼镜纯英文 HUD（遵循最小权限原则，仅声明 `["CAMERA"]` 权限）。
+将 **Google Cloud Vertex AI** 实时双向音频同传（**`gemini-3.5-live-translate-preview` on `locations/global`**）与前沿视觉推理（**Gemini 4 `gemini-4-argon` on `locations/global`**）整合至 Rokid 眼镜 480×352 纯英文单绿 HUD（声明权限：`["CAMERA", "RECORD_AUDIO"]`）。
 
 ![Demo 2 Preview](demos/02-rokid-gcp-multimodal-agent/assets/review/preview.gif)
 
-🎬 **真机实录有声视频**：[demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4](demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4)
+🎬 **真机实录有声视频与提审素材**：
+- 演示视频：[demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4](demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4)
+- 1080×1080 封面图：[demos/02-rokid-gcp-multimodal-agent/assets/review/cover.png](demos/02-rokid-gcp-multimodal-agent/assets/review/cover.png)
 
 #### 核心能力：
-1. **Vertex AI Gemini 4 (`gemini-4-argon`) 空间多模态推理（`GEMINI` Mode）**：
-   - 抓取眼镜前置摄像头画面，经由 Cloud Run 鉴权代理直连 Vertex AI `locations/global` 端点 `gemini-4-argon` 模型，针对视野目标提供实时英文场景解析与语音播报。
-2. **AR 实时双语同传字幕（`TRANSLATE` Mode）**：
-   - 基于 Google Cloud Translation API v2，在 HUD 呈现双语对照字幕并触发 TTS 播报。
-3. **GCP 节点态势与认证中枢（`CLOUD` Mode）**：
-   - 实时探测 Cloud Run 代理网关 `/health` 状态、Vertex AI `gemini-4-argon` 节点连通性与网络往返时延（RTT）。
+1. **Gemini Live 实时语音到语音同传（`LIVE TRANSLATE` Mode）**：
+   - **数据链路**：眼镜全向麦克风（`navigator.mediaDevices.getUserMedia` 配置 `microphoneMode: 'omnidirectional'`，通过 `MediaRecorder` `audio/wav` 提取 16 kHz 单声道 PCM16 分片，`0.7` 增益限幅）→ 鉴权 WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`**（自动识别源语言 → 英语）→ 下行 **24 kHz PCM** 英文同传语音（通过 `AudioContext.createBuffer(1, n, 24000)` 无缝排期播放）+ HUD 实时双语字幕（`input_transcript` 附带检测到的源语言标签 + `output_transcript` 英文字幕）；
+   - **回声抑制（Echo Control）**：在播报 24 kHz 翻译音频期间（含播完后 300 ms 缓冲），上行自动静音并发送全零 PCM 帧，保持流时序不断连的同时防止全向麦把眼镜扬声器声音再次录回；
+   - **会话控制與零示例兜底**：镜腿轻拍开始/停止同传；单次会话在 **4:50（290s）** 自动优雅停止（低于服务端 5:00 上限）；已彻底移除固定示例句与文本翻译降级路径，网络或鉴权异常时明确显示 `LIVE TRANSLATION UNAVAILABLE · <reason>`。
+2. **Vertex AI Gemini 4 (`gemini-4-argon`) 实拍视觉问答（`GEMINI 4 LIVE` Mode）**：
+   - 镜腿轻拍触发 `CameraContext.takePhoto({ quality: 'normal' })`（**12 秒超时**），将实拍画面经由 Cloud Run `/api/gemini` 发送至 **Vertex AI Global `gemini-4-argon`** 进行空间场景解析与语音播报；
+   - **真实图像门禁**：若相机不可用或抓拍未返回图像，HUD 立即提示 `"Camera unavailable · tap to retry"`（状态标 `NO CAM`），**绝不**在无照片情况下请求大模型编造场景。
+3. **GCP 节点态势与认证中枢（`CLOUD CONSOLE` Mode）**：
+   - 实时探测 Cloud Run 代理网关 `/health` 状态、Rokid Metis 鉴权状态、GCP 项目信息与 Vertex AI 节点连通性。
 
-| 模式一：`GEMINI` 视觉多模态推理 | 模式二：`TRANSLATE` 实时双语同传 | 模式三：`CLOUD` 节点健康监控 |
+#### 已知限制 (Known Limits)：
+- **全向拾音范围**：`omnidirectional` 模式会拾取并翻译眼镜周围的**所有环境人声**（包括旁人交谈或背景广播），建议在相对安静或离说话人较近的场景使用；
+- **网络链路依赖**：眼镜端需保持**手机伴侣 App 蓝牙数据通道**连接或已配置 **Wi-Fi** 方可访问 Cloud Run；
+- **首包语音延迟**：经由手机蓝牙代理转发时，端到端首包同传语音延迟约为 **~4 秒**（含上游 Gemini Live 推理与蓝牙链路传输）。
+
+| 模式一：`GEMINI 4 LIVE` 视觉多模态推理 | 模式二：`LIVE TRANSLATE` 实时语音同传 | 模式三：`CLOUD CONSOLE` 节点健康监控 |
 | :---: | :---: | :---: |
 | ![Gemini Vision](demos/02-rokid-gcp-multimodal-agent/assets/review/shot1.png) | ![Live Translate](demos/02-rokid-gcp-multimodal-agent/assets/review/shot2.png) | ![Cloud Telemetry](demos/02-rokid-gcp-multimodal-agent/assets/review/shot3.png) |
 
@@ -110,66 +134,78 @@ rokid-aiui-demos/
 
 根据 Rokid 官方规范《[账号信息授权与校验](https://rokid.yuque.com/ub8h5n/bkz4ul/0f9c5f6b12acbf80ce81e0eafd0220b8?singleDoc#)》，在 Rokid Glasses（基于轻量级 QuickJS 运行时）上访问 Google Cloud 必须解决智能体身份鉴权与云端资源防刷保护。
 
-本项目开发并部署了生产级 **Google Cloud Run 鉴权代理中继服务（`rokid-aiui-gcp-proxy`）**，实现了严格的 **Rokid Metis 智能体身份门禁**：
+本项目开发并部署了生产级 **Google Cloud Run 鉴权代理中继服务（`rokid-aiui-gcp-proxy`）**，实现了严格的 **Rokid Metis 智能体身份门禁**，同时承载 HTTP 多模态推理与 WebSocket 实时双向语音同传：
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as 用户 (Rokid 眼镜 / App)
-    participant Agent as AIUI 智能体 (Ink / 端侧)
+    actor User as 用户 / 周围说话人
+    participant Agent as AIUI 智能体 (Rokid Glasses HUD)
     participant Proxy as Cloud Run 代理网关 (rokid-aiui-gcp-proxy)
     participant Metis as Rokid Metis 平台 (rcs.rokid.com)
-    participant GCP as Google Cloud (Vertex AI / Translate / TTS)
+    participant GCP as Google Cloud Vertex AI (locations/global)
 
-    Note over User,Agent: 权限声明与端侧授权
-    Agent->>Agent: checkUserAuth() 检查授权
-    Agent->>Agent: getProfile() 获取 accountId 及一次性 code (5分钟有效)
-
-    Note over Agent,Proxy: 身份校验与门禁拦截
+    Note over User,Agent: 权限声明与端侧授权 (CAMERA + RECORD_AUDIO)
     Agent->>Proxy: POST /api/auth/verify { accountId, code }
     Proxy->>Metis: POST /metis/openApi/v1/checkAccountCode { accountId, code, developerSk }
-    Metis-->>Proxy: 返回 { code: 1, data: { checkResult: true/false, mobile } }
+    Metis-->>Proxy: 返回 { code: 1, data: { checkResult: true, mobile } }
+    Proxy-->>Agent: 200 OK { sessionToken (HMAC-SHA256 Bearer, 1h TTL) }
 
-    alt 校验未通过 (未授权/校验码过期/伪造)
-        Proxy-->>Agent: HTTP 401 Unauthorized (门禁严格拦截，不产生 GCP 消耗)
-    else 校验通过 (可信智能体)
-        Proxy->>Proxy: 签发受保护 Session Bearer Token (HMAC-SHA256)
-        Proxy-->>Agent: 200 OK { sessionToken, expiresIn: 3600 }
-        
-        Note over Agent,GCP: 授权调用 Google Cloud 核心服务
-        Agent->>Proxy: POST /api/gemini (携带 Bearer Token)
-        Proxy->>Proxy: 验签通过，自动通过 Cloud Run Metadata 获取 GCP Token
-        Proxy->>GCP: 调用 Vertex AI (locations/global gemini-4-argon) 推理
-        GCP-->>Proxy: 返回多模态分析结果
-        Proxy-->>Agent: 480x352 HUD 响应数据
+    alt 模式一：GEMINI 4 LIVE 拍照视觉问答 (轻拍触发, 12s 拍照超时)
+        User->>Agent: 轻拍镜腿抓拍实景照片
+        Agent->>Proxy: POST /api/gemini (Bearer Token + Base64 图像)
+        Proxy->>GCP: gemini-4-argon:generateContent (locations/global)
+        GCP-->>Proxy: 场景解析文本
+        Proxy-->>Agent: 480x352 HUD 响应 + TTS 播报
+    else 模式二：LIVE TRANSLATE 实时语音同传 (4:50 自动停止)
+        User->>Agent: 轻拍启动全向麦 (omnidirectional 16kHz PCM16)
+        Agent->>Proxy: WSS /ws/live-translate?token=<Bearer>&target=en
+        Proxy->>GCP: BidiGenerateContent setup (gemini-3.5-live-translate-preview)
+        loop 双向实时流 (播音期间上行静音防回声)
+            Agent->>Proxy: Binary 16kHz PCM16 音频分片
+            Proxy->>GCP: realtimeInput.audio (audio/pcm;rate=16000)
+            GCP-->>Proxy: 24kHz 英文语音分片 + 源/目标流式字幕
+            Proxy-->>Agent: Binary 24kHz PCM16 + JSON input/output_transcript
+        end
     end
 ```
 
 ### 1. 线上真实部署端点 (Cloud Run Production Endpoint)
 - **Cloud Run 服务名**：`rokid-aiui-gcp-proxy`
 - **正式服务地址**：`https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app`
-- **GCP 项目**：`cellular-cider-495602-r9`（Cloud Run Region: `us-central1`；Vertex AI Location: `global` / Model: `gemini-4-argon`）
+- **当前生效版本 (Active Revision)**：`rokid-aiui-gcp-proxy-00006-vin`（承载 **100% 流量**，支持 `/ws/live-translate`、`/api/gemini`、`/api/auth/verify`、`/api/translate`、`/api/tts`、`/health`；历史版本 `00001`–`00003` 保留用于快速回滚）
+- **GCP 项目与模型**：`cellular-cider-495602-r9`（Cloud Run Region: `us-central1`；Vertex AI Location: `global`；视觉模型：`gemini-4-argon`；同传模型：`gemini-3.5-live-translate-preview`）
 - **健康检查**：`GET https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app/health`
 
 ### 2. 身份验证与安全门禁规则
-1. **未授权即拦截**：未携带 Bearer Session Token 或校验码的请求，直接返回 `401 Unauthorized`。
+1. **未授权即拦截**：未携带有效 Bearer Session Token 或校验码的 HTTP 请求与 WebSocket 升级握手，直接返回 `401 Unauthorized`，不会建立上游 Vertex AI 会话。
 2. **一次性 Code 校验**：Rokid Metis 提供的 `code` 仅 5 分钟有效，且校验一次后由 Metis 服务端自动删除防重放。
 3. **安全隔离**：`ROKID_DEVELOPER_SK` 仅存放于 Cloud Run 服务端环境变量中，眼镜端与前端绝不暴露任何私钥。
 4. **Cloud Run 零密钥鉴权**：云端容器通过 GCP Instance Metadata 服务自动获取访问令牌，安全免密。
 
 ### 3. 端到端全链路测试套件结果
-运行 `PROXY_URL=https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app node demos/02-rokid-gcp-multimodal-agent/scripts/test_proxy_auth_e2e.mjs`：
+可通过以下三条宿主机测试命令验证线上 Cloud Run 代理的鉴权门禁、Gemini 4 视觉推理与 Gemini Live 语音同传：
+```bash
+# 1. 鉴权门禁与 REST 路由全链路测试
+npm run test:proxy
+
+# 2. Vertex AI Global gemini-4-argon 真实图像推理测试
+node demos/02-rokid-gcp-multimodal-agent/scripts/test_gemini_image.mjs
+
+# 3. Vertex AI Global gemini-3.5-live-translate-preview WebSocket 语音同传测试
+node demos/02-rokid-gcp-multimodal-agent/scripts/test_live_translate.mjs
+```
+
 | 测试项 | 预期行为 | 状态 | 实测延迟 |
 | :--- | :--- | :---: | :---: |
-| `GET /health` | 返回服务状态、工程信息与认证协议 | ✅ PASS | 678 ms |
+| `GET /health` | 返回服务状态、工程信息与 `gemini-4-argon` 模型标识 | ✅ PASS | 678 ms |
 | `POST /api/gemini` (无凭证) | 触发安全门禁，严格返回 401 拦截 | ✅ PASS | 403 ms |
-| `POST /api/translate` (无凭证) | 触发安全门禁，严格返回 401 拦截 | ✅ PASS | 243 ms |
+| `WSS /ws/live-translate` (无凭证) | WebSocket 握手门禁拦截，返回 401 | ✅ PASS | ~220 ms |
 | `POST /api/auth/verify` (非法Code) | 校验拒绝，返回 401 | ✅ PASS | 206 ms |
 | `POST /api/auth/verify` (有效智能体) | 校验通过，签发 Bearer Session Token | ✅ PASS | 245 ms |
-| `POST /api/translate` (有效Token) | 授权调用 Cloud Translation v2 获得译文 | ✅ PASS | 1423 ms |
-| `POST /api/gemini` (有效Token) | 授权调用 Vertex AI Gemini 4 (`gemini-4-argon`) | ✅ PASS | 4350 ms |
-| `POST /api/tts` (有效Token) | 授权调用 Cloud Text-to-Speech 合成音频 | ✅ PASS | 781 ms |
-| `POST /api/translate` (X-Rokid头部) | 单次透传身份校验并成功调用 | ✅ PASS | 373 ms |
+| `POST /api/gemini` (`test_gemini_image.mjs`) | 调用 Vertex AI Global `gemini-4-argon` 准确描述实拍图像 | ✅ PASS | ~4.3 s |
+| `WSS /ws/live-translate` (`test_live_translate.mjs`) | 16 kHz 中文语音上行 → `gemini-3.5-live-translate-preview` → 24 kHz 英文语音 + 双语字幕下行 | ✅ PASS | ~3.0 s (首包音频) |
+| `POST /api/translate` & `/api/tts` (有效Token) | 授权调用 Cloud Translation v2 与 Cloud TTS v1 | ✅ PASS | ~1.1 s |
 
 ---
 
@@ -240,9 +276,9 @@ npx aix launch-page -s <device_serial> dist/<name>.aix pages/index/index
 ### 5. 键盘/手势映射
 | 镜腿动作 | 键盘映射 | 功能行为 |
 | :--- | :--- | :--- |
-| **轻拍 / 单击** | `Enter` / `Space` | 触发拍照 / 发起语音 / 切换下一句同传 / 打断播报 |
-| **前后滑动** | `↓` (`ArrowDown`) / `↑` (`ArrowUp`) | 循环切换三模态卡片 |
-| **返回 / 退出** | `Backspace` / `Escape` | 不拦截宿主默认行为，遵循 AIUI 0.18 规范安全退出返回 |
+| **轻拍 / 单击** | `Enter` / `Space` | 触发实景拍照 / 启动或停止 Gemini Live 实时语音同传 / 发起语音问答 / 打断播报 |
+| **前后滑动** | `↓` (`ArrowDown`) / `↑` (`ArrowUp`) | 循环切换三模态卡片（切换时自动关闭活跃的同传会话并释放麦克风） |
+| **返回 / 退出** | `Backspace` / `Escape` | 自动释放同传会话资源，不拦截宿主默认行为，遵循 AIUI 0.18 规范安全退出返回 |
 
 ---
 

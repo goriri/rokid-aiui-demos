@@ -130,6 +130,43 @@ export default {
 2. `X-AIUI-Agent-Id`: 与云端注册的合法 Agent ID 一致；
 3. `X-AIUI-Signature`: `HMAC-SHA256(secretKey, `${agentId}\n${timestamp}\n${nonce}\n${bodyHash}`)`。
 
+### 3.4 Live translate (Gemini Live) relay (实时语音同传 WebSocket 中继)
+
+在 Demo 2（`GCP Live Translator` v1.0.10）中，`rokid-aiui-gcp-proxy` 除了提供 REST 视觉推理端点（`POST /api/gemini` → Vertex AI `locations/global` `gemini-4-argon`）外，还通过 `/ws/live-translate` 提供面向 Rokid Glasses 的双向低延迟语音同传 WebSocket 中继：
+
+1. **WebSocket 协议与鉴权门禁 (`WSS /ws/live-translate`)**:
+   - **连接地址**: `wss://<cloud-run-host>/ws/live-translate?token=<sessionToken>&target=en`
+   - **握手鉴权**: 在 HTTP `upgrade` 阶段校验 `/api/auth/verify` 签发的 HMAC-SHA256 Bearer `sessionToken`（同时兼容 `Authorization: Bearer <token>` 或 `X-Rokid-Account-Id` + `X-Rokid-Code`）。未通过校验的连接直接返回 `HTTP 401 Unauthorized` 并断开，不会触发任何上游 Vertex AI 连接。
+   - **上游预握手**: 中继向 Vertex AI `locations/global` 建立 `BidiGenerateContent` WebSocket 会话（模型 `gemini-3.5-live-translate-preview`，启用 `responseModalities: ["AUDIO"]`、`translationConfig: { targetLanguageCode: "en" }`、`inputAudioTranscription` 与 `outputAudioTranscription`），等待上游返回 `setupComplete` 后才完成客户端 WebSocket 握手，因此眼镜端在 `ws.onopen` 触发时即可立即推流。
+2. **音频编码格式与双向帧协议**:
+   - **上行音频帧 (Client → Server, Binary)**: `PCM16LE` 单声道 `16 kHz`（推荐每 100 ms 发送 3200 字节）。眼镜端通过 `navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, microphoneMode: 'omnidirectional', echoCancellation: false } })` 配合 `new MediaRecorder(stream, { mimeType: 'audio/wav' })` 每 100 ms 切片、剥离 44 字节 WAV 头部并施加 `0.7` 增益限幅后直接以 `ArrayBuffer` 发送；当眼镜正在播放下行翻译语音时（`nextPlayTime + 300ms`），客户端自动发送全零 PCM 帧实现回声抑制（Echo Control）。
+   - **上行控制帧 (Client → Server, JSON)**:
+     - `{"type":"audio_stream_end"}`：用户轻拍停止时发送，服务端按实时速率（100 ms 间隔 × 12 帧）向 Vertex AI 注入 1.2 秒静音帧后发送 `realtimeInput.audioStreamEnd: true`，确保尾句被完整翻译；
+     - `{"type":"ping"}`：返回 `{"type":"pong","timestamp":...}`。
+   - **下行数据帧 (Server → Client)**:
+     - **Binary 帧**: `PCM16LE` 单声道 `24 kHz` 英文同传语音流（服务端自动过滤尾部连续静音零填充帧；眼镜端通过 `new AudioContext()` + `ctx.createBuffer(1, samples, 24000)` 无缝排期播放）；
+     - **JSON 字幕与状态帧**: `{"type":"input_transcript","text":"...","languageCode":"..."}`、`{"type":"output_transcript","text":"...","languageCode":"en"}`、`{"type":"turn_complete"}`、`{"type":"error","code":"...","message":"..."}`。
+3. **Cloud Run 超时配置与会话上限**:
+   - 部署 Cloud Run 时必须设置 `--timeout 3600`（允许长连接 WebSocket 保持最高 3600 秒）；
+   - 服务端内置 25 秒双向 WebSocket `ping` 保活与 **5 分钟 (`300000 ms`)** 单次会话时长硬上限，眼镜端则在 **4:50 (`290s`)** 自动触发停止。
+4. **无流量标签修订版本灰度发布工作流 (Tagged No-Traffic Revision Workflow)**:
+   - 当线上已有版本正在接受 AIUI Studio 审核时，使用 `--no-traffic --tag live` 部署新修订版本，避免影响线上默认域名流量：
+     ```bash
+     gcloud run deploy rokid-aiui-gcp-proxy \
+       --source demos/02-rokid-gcp-multimodal-agent/server \
+       --region us-central1 \
+       --timeout 3600 \
+       --no-traffic \
+       --tag live
+     ```
+   - 先通过标签专属地址（`https://live---rokid-aiui-gcp-proxy-<hash>-uc.a.run.app`）运行宿主机验证脚本（`node demos/02-rokid-gcp-multimodal-agent/scripts/test_live_translate.mjs`、`node demos/02-rokid-gcp-multimodal-agent/scripts/test_gemini_image.mjs`、`npm run test:proxy`）及真机实测；
+   - 验证全部通过后，将 100% 生产流量切换至新修订版本（当前生效版本为 `rokid-aiui-gcp-proxy-00006-vin`，承载 100% 流量；旧版本 `00001`–`00003` 保留用于一键回滚）：
+     ```bash
+     gcloud run services update-traffic rokid-aiui-gcp-proxy \
+       --region us-central1 \
+       --to-revisions=rokid-aiui-gcp-proxy-00006-vin=100
+     ```
+
 ---
 
 ## 4. 打包体系：AIX 运行时包 vs Cache 源码暂存包

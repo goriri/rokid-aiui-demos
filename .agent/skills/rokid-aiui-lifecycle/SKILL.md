@@ -10,6 +10,10 @@ Pair with `aiui-dev` (code/API/WXSS reference). This skill is the operations run
 ## Phase 0 — Environment
 - `adb devices -l` → `model:RG_glasses`. Several devices → ask the user which one.
 - Network: the glasses usually have Wi-Fi OFF and reach the internet through the **phone companion over Bluetooth**. Before testing anything that uses the network, check `adb shell dumpsys bluetooth_manager | grep ConnectionState` and grep logcat for `HCI_ERR_PAGE_TIMEOUT`. If the link is down, ask the user to reconnect the phone. Don't try to configure Wi-Fi.
+- **Bluetooth & companion link troubleshooting**:
+  - Bluetooth can be persisted OFF after a reboot (`enabled: false` in `dumpsys bluetooth_manager`) → re-enable with `adb shell svc bluetooth enable`.
+  - A2DP `ConnectionState: STATE_CONNECTED` alone does **not** guarantee the Rokid companion data link is up: verify logcat shows `updateBluetoothApp -> connect:true` and active `cxr-service` messages (or `NetProxyEngine` traffic).
+  - The glasses can also receive Wi-Fi credentials provisioned from the phone companion app (`adb shell dumpsys wifi | grep "mNetworkInfo"`).
 - Toolchain per demo: `@yodaos-pkg/aix-cli@^0.10.1` (devDependency); run `npx aix` from inside the demo dir. Runtime check: `npx aix runtime current` (must satisfy `inkVersion`).
 - Credentials (Rokid account, GCP) go only in a gitignored `.env`. Never echo them. If a user pastes one in chat, store it in `.env` and recommend changing it.
 
@@ -24,7 +28,10 @@ Source of truth: `github.com/yodaos-project/AIUI` `documentation/8-changelog/lat
 
 ## Phase 2 — Known platform traps
 - **The built-in `LanguageModel` (Rokid Metis) drops images.** `image_url` parts are silently stripped (test: an 8×8 PNG → "NO_IMAGE"). Use it for text chat only; send vision to a cloud multimodal model (Phase 6).
-- `CameraContext.takePhoto()` returns **`image/webp`**: build `data:${photo.mimeType};base64,…`. Use `quality:'low'|'normal'` to keep uploads small.
+- `CameraContext.takePhoto()` returns **`image/webp`**: build `data:${photo.mimeType};base64,…`. Use `quality:'low'|'normal'` to keep uploads small. Allow a **12s timeout** on device (camera capture can take >4s while `screenrecord` is active), and if no photo is returned, show `"Camera unavailable · tap to retry"` — never ask the model to describe a scene without a photo.
+- **Microphone modes (`microphoneMode`)**: `'wearer'` (the default, and the **only** mode `wx.getRecorderManager` supports) uses beamforming that rejects other speakers by ~`-60 dB`. For translating nearby speakers, use `navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, microphoneMode: 'omnidirectional', echoCancellation: false } })` + `new MediaRecorder(stream, { mimeType: 'audio/wav' })` (`mr.start(100)`), strip the 44-byte WAV header to get 16 kHz PCM16LE, apply `0.7` gain with clamping, and mute uplink (send zero-filled PCM frames) while playback runs to prevent speaker-to-mic echo.
+- **Web Audio (`AudioContext`) sample rate**: `new AudioContext({ sampleRate: 24000 })` **throws** on the glasses runtime, but default `new AudioContext()` followed by `ctx.createBuffer(1, sampleCount, 24000)` works and resamples cleanly for gapless 24 kHz PCM playback.
+- **WebSocket over the phone proxy**: `new WebSocket('wss://...')` with `ws.binaryType = 'arraybuffer'` works over the Bluetooth companion proxy (~670 ms RTT) as long as the companion data link is up.
 - Network path glasses → BT → phone → internet adds seconds: timeouts 25s for vision, 10s for other calls; show an `ANALYZING…` state.
 - Fallback/sample text must say so (`OFFLINE SAMPLE`/`OFFLINE DEMO`). Never word a fallback as a live result.
 
@@ -50,17 +57,23 @@ Device facts: physical display 480×640, HUD region `crop=480:352:0:180`; screen
 3. Audio: `scrcpy --no-video --audio-source=output --display-id=0` (logical id) captures device TTS. It mutes the temple speaker while recording, which is harmless. The Mac mic can NOT hear the glasses.
 4. Question audio: the same `q.aiff` played with `afplay`, mixed in at its play offset. `scripts/record_demo_av.sh` does steps 2–4 (`start` / `say` / `stop`). If scrcpy can't be used: `scripts/mux_audio.sh` dubs TTS on the Mac at logcat times.
 5. Gate with `scripts/check_video.sh`: H.264/AAC yuv420p 480×352, 15–45s, ≤50MB; YMAX>20 on ≥90% of 1fps samples; volumedetect mean > −35 dB on the question and each TTS slice; mpdecimate distinct frames; **look at the 3×3 contact sheet**; every AI result LIVE; clean English.
-6. Restore `screen_off_timeout` and `svc power stayon false`; leave the device on the launcher.
+6. **Live-translation & physical recording hygiene**:
+   - **Never touch the right temple** while positioning or holding the glasses during a take — the temple capacitive touchpad fires `KeyUp: Enter`, which stops an active live translation session or triggers a duplicate turn.
+   - `microphoneMode: 'omnidirectional'` translates **all** nearby speech, including room chatter; record in a quiet spot with the glasses ~15 cm from the speaker.
+   - Wait for the full response to finish (final transcript punctuation + ≥3s with no `RX` audio/transcript chunks and playback drained) before triggering the next action or stopping.
+7. Restore `screen_off_timeout` and `svc power stayon false`; leave the device on the launcher.
 Deliverables per demo: `assets/review/{demo.mp4, cover.png (1080² padded), shot1..3.png}`.
 
 ## Phase 6 — Google Cloud (Cloud Run proxy → Vertex Gemini)
-- The client never holds API keys: glasses → Cloud Run proxy (`/api/auth/verify` → bearer, `/api/gemini`, `/api/translate`, `/api/tts`, `/health`).
-- Latest models (Gemini 3.x / 4) are served only at Vertex **`locations/global`** (`us-central1` → 404). Probe candidates with a small image, compare latency, then set the model in the proxy and redeploy. Keep earlier revisions for rollback (`gcloud run revisions list`).
-- Verify from the host: `scripts/test_gemini_image.mjs` (the answer must describe the image) and `npm run test:proxy` (all gates pass). Update HUD model labels and docs to match.
+- The client never holds API keys: glasses → Cloud Run proxy (`/api/auth/verify` → bearer, `/api/gemini`, `/ws/live-translate`, `/api/translate`, `/api/tts`, `/health`).
+- Latest models (Gemini 3.x / 4) are served only at Vertex **`locations/global`** (`us-central1` → 404): vision uses `gemini-4-argon`, and live speech-to-speech translation uses `gemini-3.5-live-translate-preview`. Probe candidates with a small image/audio clip, compare latency, then set the model in the proxy and redeploy. Keep earlier revisions for rollback (`gcloud run revisions list`, e.g. `00006-vin` serving 100% traffic while `00001`–`00003` are kept).
+- **WebSocket live-translate relay pattern (`/ws/live-translate`)**: authenticate the bearer token on HTTP `upgrade`, open the upstream Vertex AI `BidiGenerateContent` WebSocket (`gemini-3.5-live-translate-preview`, `locations/global`) and wait for `setupComplete` before completing the client upgrade; relay binary 16 kHz PCM16 uplink → `realtimeInput.audio` and stream back binary 24 kHz PCM16 audio + JSON `input_transcript`/`output_transcript`/`turn_complete` (flushing 1.2s of silence on `audio_stream_end`).
+- **Safe Cloud Run deploy workflow (`--no-traffic --tag`)**: when an existing agent version is under review, deploy proxy changes with `gcloud run deploy rokid-aiui-gcp-proxy --source ... --timeout 3600 --no-traffic --tag live`, verify against `https://live---...run.app`, and cut 100% traffic over (`gcloud run services update-traffic ... --to-revisions=<rev>=100`) only after host and device tests pass.
+- Verify from the host: `scripts/test_gemini_image.mjs` (the answer must describe the image), `scripts/test_live_translate.mjs` (streams PCM16 speech and verifies 24 kHz audio + bilingual transcripts), and `npm run test:proxy` (all gates pass). Update HUD model labels and docs to match.
 
 ## Phase 7 — Rokid AIUI Studio upload & submit for review
-Use `scripts/studio_upload.mjs` (repo root; `--dry-run` by default, `--execute` to write). Flow:
-1. Log in (`account-center.rokid.com/v2/login.do`, creds from `.env`) → `metis/agent/getAIUIAgentList` → map the existing drafts (update them, don't create duplicates).
+Use `scripts/studio_upload.mjs` (repo root; `--dry-run` by default, `--execute` to write, `--create` to register a brand-new Studio agent). Flow:
+1. Log in (`account-center.rokid.com/v2/login.do`, creds from `.env`) → `metis/agent/getAIUIAgentList` → map the existing drafts (update them, don't create duplicates), or pass `--create` when intentionally creating a new agent listing (calls `saveAIUIAgent` with `nativeVersion: "1.0.0"`, which allocates a new `agentId` starting at `1.0.0`).
 2. OSS upload: `.aix` (`metis/<agentId>-<ts>.aix`), `cache.zip` (naming + MD5 rules in the deployment guide), icon, `previewMaterials` = 3–5 items, ≥1 video + ≥1 image, video first.
 3. `metis/agent/updateThirdAgent` **once**. The server adds +0.0.1 to `nativeVersion` on every save call, so bump `app.json` version above the current Studio version and don't call save repeatedly.
 4. Read back: `fileMd5`/`codeFileMd5` match local, permissions, 5 materials, `displayStatus: draft`.
