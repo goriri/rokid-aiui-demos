@@ -220,6 +220,8 @@ const multimodalAnswer = await session.prompt([
 ]);
 ```
 
+> ⚠️ On Rokid Glasses (assistserver 0.3.8) the default Metis model silently drops `image_url` parts. Use a cloud multimodal model for vision.
+
 ```js
 session.addEventListener('toolcall', (event) => {
   console.log(event.functionName, event.arguments);

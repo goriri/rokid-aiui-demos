@@ -12,8 +12,8 @@ const tempScreenshots = path.join(tempBase, 'screenshots');
 const tempFrames = path.join(tempBase, 'frames');
 const tempRecordings = path.join(tempBase, 'recordings');
 
-const finalScreenshots = path.resolve('assets/screenshots');
-const finalRecordings = path.resolve('assets/recordings');
+const finalScreenshots = path.resolve('assets/simulator');
+const finalRecordings = path.resolve('assets/simulator');
 const artifactDir = '/Users/jush/.gemini/antigravity/brain/0034b021-4463-4213-8959-7fb1de639303/media';
 
 fs.rmSync(tempBase, { recursive: true, force: true });

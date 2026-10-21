@@ -908,6 +908,8 @@ const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('hel
 
 ## 9. Testing, Debugging & Cloud Deployment
 
+> For ADB deployment, on-device testing, review-video recording, Google Cloud proxy setup and Rokid Studio submission, follow the `rokid-aiui-lifecycle` skill (`.agent/skills/rokid-aiui-lifecycle/SKILL.md`).
+
 For end-to-end instructions on testing, packaging, and deploying AIUI agents to Rokid Glasses, see [testing-debugging-deployment.md](./testing-debugging-deployment.md). Key takeaways include:
 
 - **Packaging Types**: AIUI distinguishes between runtime installation packages (`.aix` ZIP archives) and Web Studio source cache packages (`cache.zip`).

@@ -1,11 +1,13 @@
 # Rokid Glasses AIUI Demos Collection (Rokid AR 智能眼镜案例集)
 
-[![Platform](https://img.shields.io/badge/Platform-Rokid%20Glasses%201%20%2F%202-40ff5e?style=flat-square&logo=android)](https://aiui.rokid.com/)
-[![SDK](https://img.shields.io/badge/AIUI%20Framework-Ink%20SFC%20(QuickJS)-000000?style=flat-square&logo=javascript)](https://github.com/jsar-project/AIUI)
-[![GCP](https://img.shields.io/badge/Cloud%20AI-Google%20Cloud%20Vertex%20AI-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
-[![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352-25D366?style=flat-square)](#-单绿色科学界面设计系统规范)
+[English](README.en.md) | [中文](README.md)
 
-本项目为基于 **Rokid AIUI** 官方规范与 **Google Antigravity** 平台打造的 Rokid AR 智能眼镜应用集合（Monorepo）。严格遵循 Rokid 官方推荐的 **单绿色科学界面设计系统 (Monochrome-Green Scientific Interface)**，在 **480 × 352** 单绿 MicroLED 光波导视口下，提供纯净透明、极高对比、低眩光的全新 AR 视觉与多模态 AI 交互体验。
+[![Platform](https://img.shields.io/badge/Platform-Rokid%20Glasses%201%20%2F%202-40ff5e?style=flat-square&logo=android)](https://aiui.rokid.com/)
+[![SDK](https://img.shields.io/badge/AIUI%200.18-Ink%20SFC%20%2F%20aix--cli%200.10.1-000000?style=flat-square&logo=javascript)](https://github.com/yodaos-project/AIUI)
+[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20(Global)-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
+[![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352%20(EN)-25D366?style=flat-square)](#-单绿色科学界面设计系统规范)
+
+本项目为基于 **Rokid AIUI 0.18** 官方规范（`@yodaos-pkg/aix-cli@0.10.1`）与 **Google Cloud Vertex AI** 打造的 Rokid AR 智能眼镜应用集合（Monorepo）。全系采用纯英文 **单绿色科学界面设计系统 (Monochrome-Green Scientific Interface, English UI)**，在 **480 × 352** 单绿 MicroLED 光波导视口下，提供纯净透明、高对比度、低眩光的 AR 视觉与多模态 AI 交互体验。
 
 ---
 
@@ -13,81 +15,94 @@
 
 ```text
 rokid-aiui-demos/
+├── .agent/skills/
+│   ├── aiui-dev/                          # AIUI 0.18 组件、API 与 WXSS 视觉规范开发技能
+│   └── rokid-aiui-lifecycle/              # 端到端构建、ADB 真机部署、音画内录与 Studio 提审技能
 ├── demos/
-│   ├── 01-rokid-vision-voice-copilot/     # Demo 1: AR 随身眼脑助手 (本地多模态+语音全双工+态势感知)
-│   │   ├── app.json
+│   ├── 01-rokid-vision-voice-copilot/     # Demo 1: Vision Voice Copilot (语音问答 + 云端视觉识图 + IMU 姿态仪表盘)
+│   │   ├── app.json                       # AIUI >=0.18.0 清单 (最小权限: CAMERA, RECORD_AUDIO)
 │   │   ├── app.js
-│   │   ├── pages/index/index.ink
-│   │   ├── assets/screenshots/            # 480x352 高清 HUD 仿真截图
-│   │   ├── assets/recordings/             # 端到端交互 MP4 与 GIF 动图
+│   │   ├── pages/index/index.ink          # 纯英文单绿 HUD (CHAT / VISION / DASHBOARD)
+│   │   ├── assets/icon.png                # 512x512 定制图标
+│   │   ├── assets/review/                 # 真机实录视频 (demo.mp4)、动图 (preview.gif)、封面与截图 (shot1..3.png)
 │   │   └── package.json
 │   │
-│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: Google Cloud AI 实时同传与多模态眼脑助理
-│       ├── app.json
+│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Multimodal Agent (Gemini 4 视觉推理 + 实时双语同传 + 云端监控)
+│       ├── app.json                       # AIUI >=0.18.0 清单 (最小权限: 仅 CAMERA)
 │       ├── app.js
-│       ├── gcp_config.js                  # GCP REST 鉴权与端侧请求引擎
+│       ├── gcp_config.js                  # Cloud Run 鉴权中继客户端配置 (零客户端密钥)
 │       ├── server/
-│       │   └── gcp_relay_server.mjs       # GCP Cloud Run / Edge 本地中继网关
-│       ├── pages/index/index.ink          # 三模态单绿 HUD (Gemini 2.5 + 同传字幕 + GCP 控制台)
-│       ├── assets/screenshots/
-│       ├── assets/recordings/
+│       │   └── gcp_relay_server.mjs       # Cloud Run / 本地中继网关 (Vertex AI Global gemini-4-argon)
+│       ├── pages/index/index.ink          # 纯英文三模态单绿 HUD (GEMINI / TRANSLATE / CLOUD)
+│       ├── assets/icon.png                # 512x512 定制图标
+│       ├── assets/review/                 # 真机实录视频 (demo.mp4)、动图 (preview.gif)、封面与截图 (shot1..3.png)
 │       └── package.json
 │
-├── docs/                                  # 官方全流程工程开发指南与最佳实践
-│   └── ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md  # 开发、测试、云端代理、打包与真机扫码部署全书
+├── scripts/                               # 真机音画采集、视频质检与 AIUI Studio 自动上传提审脚本
+├── docs/                                  # 工程开发指南与提审材料清单
+│   ├── REVIEW_SUBMISSION.md               # Rokid AIUI Studio 构建与提审手册 (含线上提审状态)
+│   └── ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md
 │
-├── package.json                           # 全局 Monorepo 脚本 (统一构建、打包与预览)
+├── package.json                           # 全局 Monorepo 脚本 (预览、打包、中继与端到端测试)
 ├── AGENTS.md                              # 智能体清单与硬件权限规范
+├── README.en.md                           # 英文项目说明文档
 └── README.md
 ```
 
-> 📖 **完整实战工程指南**: 详细请参阅 [Rokid AIUI 智能体开发、测试、打包与部署全流程工程指南](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md)，涵盖双平台部署、源码 Cache 正则防坑、Cloud Run 鉴权中继与真机扫码。
+> 📖 **完整工程与提审文档**:
+> - [Rokid AIUI 端到端生命周期运维技能 (`rokid-aiui-lifecycle`)](.agent/skills/rokid-aiui-lifecycle/SKILL.md)：涵盖 AIUI 0.18 规范检查、ADB 真机直装、真机音画同步内录、Vertex AI Global `gemini-4-argon` 接入与 Studio 提审全流程。
+> - [Rokid AIUI Studio 构建与提审手册 (`REVIEW_SUBMISSION.md`)](docs/REVIEW_SUBMISSION.md)：包含两个智能体的精确提审元数据、权限说明、网络披露与当前线上审核状态。
+> - [Rokid AIUI 智能体开发、测试、打包与部署全流程工程指南](docs/ROKID_AIUI_DEVELOPMENT_TESTING_DEPLOYMENT_GUIDE.md)：涵盖双平台部署、`cache.zip` 正则校验防坑与 Cloud Run 鉴权中继架构。
 
 
 ---
 
 ## 🎯 演示项目介绍
 
-### 🌟 Demo 1: AR 随身眼脑助手 (`01-rokid-vision-voice-copilot`)
+### 🌟 Demo 1: Vision Voice Copilot / AR 随身眼脑助手 (`01-rokid-vision-voice-copilot`)
 
-基于 Rokid 眼镜内置硬件能力与 AIUI 基础组件打造的软硬一体化随身 Copilot。
+基于 Rokid 眼镜内置硬件能力与 AIUI 0.18 规范打造的软硬一体化随身英文 HUD Copilot（声明权限：`["CAMERA", "RECORD_AUDIO"]`）。
 
-![Demo 1 交互动图](demos/01-rokid-vision-voice-copilot/assets/recordings/rokid_copilot_demo.gif)
+![Demo 1 Preview](demos/01-rokid-vision-voice-copilot/assets/review/preview.gif)
+
+🎬 **真机实录有声视频**：[demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4](demos/01-rokid-vision-voice-copilot/assets/review/demo.mp4)
 
 #### 核心能力：
-1. **全双工语音交互（CHAT）**：
-   - 镜腿轻拍（`Enter` / `GlobalHook`）即刻触发 ASR 唤醒；
-   - 本地/云端 LLM 流式打字机逐字输出；
-   - 低延迟 TTS 实时语音播报，轻拍随时打断。
-2. **多模态视野抓拍（VISION）**：
-   - 居中科技感十字瞄准准星，视野目标精确定位；
-   - 镜腿单击瞬时抓拍，调用多模态模型进行 30 字极简场景解析。
-3. **姿态与态势感知（DASHBOARD）**：
-   - 实时读取眼镜内置陀螺仪与加速度计，展示俯仰角（Pitch）、翻滚角（Roll）与计步器。
+1. **全双工语音交互（`CHAT` Mode）**：
+   - 镜腿轻拍（`Enter` / `GlobalHook`）即刻触发 `SpeechRecognition` 语音转写；
+   - 调用宿主内置 `LanguageModel`（Rokid Metis LLM）流式生成精简英文回答；
+   - 低延迟 TTS 实时播报（带基于字数的安全超时兜底），轻拍随时打断。
+2. **多模态视野抓拍（`VISION` Mode via Cloud Run Proxy）**：
+   - 居中十字准星对准目标，镜腿单击调用 `CameraContext.takePhoto({ quality: 'low' })` 抓取 `image/webp` 画面；
+   - **为什么走 Cloud Run 代理**：由于 Rokid 端侧内置 `LanguageModel`（Metis）会静默丢弃 `image_url` 图像输入，因此 `VISION` 模式将 Base64 图像发送至 Google Cloud Run 鉴权代理网关，调用 **Vertex AI Gemini 4 (`gemini-4-argon`, `locations/global`)** 完成真实场景视觉识别与 TTS 播报。
+3. **姿态与态势感知（`DASHBOARD` Mode）**：
+   - 实时读取眼镜内置 `Gyroscope` 传感器，展示俯仰角（Pitch）、翻滚角（Roll）与运行遥测指标。
 
-| 模式一：语音对话 | 模式二：准星对齐 | 模式三：仪表盘态势 |
+| 模式一：`CHAT` 待命 HUD | 模式二：`CHAT` 语音问答实录 | 模式三：`VISION` 实景多模态识别 |
 | :---: | :---: | :---: |
-| ![Chat](demos/01-rokid-vision-voice-copilot/assets/screenshots/03_hud_chat_active.png) | ![Vision](demos/01-rokid-vision-voice-copilot/assets/screenshots/04_hud_vision_reticle.png) | ![Dashboard](demos/01-rokid-vision-voice-copilot/assets/screenshots/06_hud_dashboard_imu.png) |
+| ![Chat Standby](demos/01-rokid-vision-voice-copilot/assets/review/shot1.png) | ![Chat QA](demos/01-rokid-vision-voice-copilot/assets/review/shot2.png) | ![Vision Scene](demos/01-rokid-vision-voice-copilot/assets/review/shot3.png) |
 
 ---
 
-### 🚀 Demo 2: Google Cloud AI 实时同传与多模态助手 (`02-rokid-gcp-multimodal-agent`)
+### 🚀 Demo 2: GCP Multimodal Agent / Google Cloud AI 多模态与同传助手 (`02-rokid-gcp-multimodal-agent`)
 
-将 **Google Cloud** 的前沿云端 AI 能力（Vertex AI Gemini 2.5 Flash、Cloud Translation v2、Cloud Text-to-Speech v1）无缝整合至 Rokid 眼镜。
+将 **Google Cloud** 前沿云端 AI 能力（**Vertex AI Gemini 4 `gemini-4-argon` on `locations/global`**、Cloud Translation v2、Cloud Text-to-Speech v1）无缝整合至 Rokid 眼镜纯英文 HUD（遵循最小权限原则，仅声明 `["CAMERA"]` 权限）。
 
-![Demo 2 交互动图](demos/02-rokid-gcp-multimodal-agent/assets/recordings/rokid_gcp_demo.gif)
+![Demo 2 Preview](demos/02-rokid-gcp-multimodal-agent/assets/review/preview.gif)
+
+🎬 **真机实录有声视频**：[demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4](demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4)
 
 #### 核心能力：
-1. **Vertex AI Gemini 2.5 Flash 空间多模态推理**：
-   - 抓取眼镜前置摄像头画面，直连 GCP Vertex AI 多模态端点，针对准星目标提供空间感知与工程推断。
-2. **AR 实时同传双语字幕（AR Live Subtitles）**：
-   - 基于 Google Cloud Translation API，在上视安全区呈现原文与高亮同传译文，延迟低于 50ms。
-3. **GCP 节点态势与 ADC 认证中枢**：
-   - 实时监测 GCP API 连通性、ADC 临时凭据剩余寿命、项目配额与网络时延。
+1. **Vertex AI Gemini 4 (`gemini-4-argon`) 空间多模态推理（`GEMINI` Mode）**：
+   - 抓取眼镜前置摄像头画面，经由 Cloud Run 鉴权代理直连 Vertex AI `locations/global` 端点 `gemini-4-argon` 模型，针对视野目标提供实时英文场景解析与语音播报。
+2. **AR 实时双语同传字幕（`TRANSLATE` Mode）**：
+   - 基于 Google Cloud Translation API v2，在 HUD 呈现双语对照字幕并触发 TTS 播报。
+3. **GCP 节点态势与认证中枢（`CLOUD` Mode）**：
+   - 实时探测 Cloud Run 代理网关 `/health` 状态、Vertex AI `gemini-4-argon` 节点连通性与网络往返时延（RTT）。
 
-| 模式一：Gemini 2.5 视觉推理 | 模式二：AR 实时双语同传 | 模式三：GCP 认证控制台 |
+| 模式一：`GEMINI` 视觉多模态推理 | 模式二：`TRANSLATE` 实时双语同传 | 模式三：`CLOUD` 节点健康监控 |
 | :---: | :---: | :---: |
-| ![Gemini](demos/02-rokid-gcp-multimodal-agent/assets/screenshots/03_gcp_gemini_analyzed.png) | ![Translate](demos/02-rokid-gcp-multimodal-agent/assets/screenshots/04_gcp_translate_subtitle.png) | ![Console](demos/02-rokid-gcp-multimodal-agent/assets/screenshots/06_gcp_console_health.png) |
+| ![Gemini Vision](demos/02-rokid-gcp-multimodal-agent/assets/review/shot1.png) | ![Live Translate](demos/02-rokid-gcp-multimodal-agent/assets/review/shot2.png) | ![Cloud Telemetry](demos/02-rokid-gcp-multimodal-agent/assets/review/shot3.png) |
 
 ---
 
@@ -124,7 +139,7 @@ sequenceDiagram
         Note over Agent,GCP: 授权调用 Google Cloud 核心服务
         Agent->>Proxy: POST /api/gemini (携带 Bearer Token)
         Proxy->>Proxy: 验签通过，自动通过 Cloud Run Metadata 获取 GCP Token
-        Proxy->>GCP: 调用 Vertex AI (gemini-2.5-flash) 推理
+        Proxy->>GCP: 调用 Vertex AI (locations/global gemini-4-argon) 推理
         GCP-->>Proxy: 返回多模态分析结果
         Proxy-->>Agent: 480x352 HUD 响应数据
     end
@@ -133,7 +148,7 @@ sequenceDiagram
 ### 1. 线上真实部署端点 (Cloud Run Production Endpoint)
 - **Cloud Run 服务名**：`rokid-aiui-gcp-proxy`
 - **正式服务地址**：`https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app`
-- **GCP 项目**：`cellular-cider-495602-r9`（Region: `us-central1`）
+- **GCP 项目**：`cellular-cider-495602-r9`（Cloud Run Region: `us-central1`；Vertex AI Location: `global` / Model: `gemini-4-argon`）
 - **健康检查**：`GET https://rokid-aiui-gcp-proxy-766918001064.us-central1.run.app/health`
 
 ### 2. 身份验证与安全门禁规则
@@ -152,7 +167,7 @@ sequenceDiagram
 | `POST /api/auth/verify` (非法Code) | 校验拒绝，返回 401 | ✅ PASS | 206 ms |
 | `POST /api/auth/verify` (有效智能体) | 校验通过，签发 Bearer Session Token | ✅ PASS | 245 ms |
 | `POST /api/translate` (有效Token) | 授权调用 Cloud Translation v2 获得译文 | ✅ PASS | 1423 ms |
-| `POST /api/gemini` (有效Token) | 授权调用 Vertex AI Gemini 2.5 Flash | ✅ PASS | 9122 ms |
+| `POST /api/gemini` (有效Token) | 授权调用 Vertex AI Gemini 4 (`gemini-4-argon`) | ✅ PASS | 4350 ms |
 | `POST /api/tts` (有效Token) | 授权调用 Cloud Text-to-Speech 合成音频 | ✅ PASS | 781 ms |
 | `POST /api/translate` (X-Rokid头部) | 单次透传身份校验并成功调用 | ✅ PASS | 373 ms |
 
@@ -201,21 +216,33 @@ npm run gcp:relay
 
 ### 3. 构建打包生产工件 (`.aix`)
 
+基于 `@yodaos-pkg/aix-cli@0.10.1` 构建 AIUI `>=0.18.0` 生产安装包：
 ```bash
-# 构建 Demo 1
+# 构建 Demo 1 (demos/01-rokid-vision-voice-copilot/dist/rokid-glasses-copilot.aix)
 npm run pack:demo1
 
-# 构建 Demo 2
+# 构建 Demo 2 (demos/02-rokid-gcp-multimodal-agent/dist/rokid-gcp-multimodal-agent.aix)
 npm run pack:demo2
 ```
-打包成功后，可在各自工程的 `dist/` 目录下获取约 20 KB 的极致轻量 `.aix` 安装包。
 
-### 4. 键盘/手势映射
+### 4. ADB 真机直装与启动 (`aix-cli 0.10.1`)
+
+通过 USB 连接 Rokid Glasses 后，可在各 Demo 目录下使用 `npx aix` 直接推送并启动智能体：
+```bash
+# 切换眼镜 AIUI 宿主至开发者模式
+npx aix device -s <device_serial> set-dev
+
+# 安装打包好的 .aix 归档并启动首页
+npx aix install -s <device_serial> dist/<name>.aix
+npx aix launch-page -s <device_serial> dist/<name>.aix pages/index/index
+```
+
+### 5. 键盘/手势映射
 | 镜腿动作 | 键盘映射 | 功能行为 |
 | :--- | :--- | :--- |
 | **轻拍 / 单击** | `Enter` / `Space` | 触发拍照 / 发起语音 / 切换下一句同传 / 打断播报 |
 | **前后滑动** | `↓` (`ArrowDown`) / `↑` (`ArrowUp`) | 循环切换三模态卡片 |
-| **长按** | `Esc` | 打断当前流程，复位待命 |
+| **返回 / 退出** | `Backspace` / `Escape` | 不拦截宿主默认行为，遵循 AIUI 0.18 规范安全退出返回 |
 
 ---
 

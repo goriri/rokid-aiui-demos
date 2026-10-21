@@ -2,6 +2,8 @@
 
 本文档总结了在 Rokid Glasses（RokidGlasses1 / RokidGlasses2）上进行 AIUI 智能体完整生命周期（开发、模拟器测试、云端代理整合、AIX/Cache 双重打包、国内/国际双平台部署及真机扫码调试）的最佳实践与踩坑经验。
 
+> 💡 **AIUI 0.18 最新端到端运维手册（含 `aix-cli@0.10.1` ADB 真机直装、Vertex AI Global `gemini-4-argon` 多模态代理、真机音画内录与 Studio 自动提审）**: 请参阅 [.agent/skills/rokid-aiui-lifecycle/SKILL.md](../.agent/skills/rokid-aiui-lifecycle/SKILL.md) 与 [REVIEW_SUBMISSION.md](REVIEW_SUBMISSION.md)。
+
 ---
 
 ## 1. 硬件规范与核心架构
@@ -13,18 +15,15 @@
   - **背景色**: 必须使用纯黑 `#000000`（在单绿波导镜片上表现为 100% 全透明，融入现实世界）。**严禁**大面积色块。
   - **高亮主色**: `#40ff5e`（高亮绿色），用于聚焦框、准星、高光文字。
   - **半透明色**: `rgba(64, 255, 94, 0.6)` 或 `rgba(64, 255, 94, 0.4)`，用于次级文本、卡片边框、辅助网格。
-  - **卡片边框**: 统一使用 `2px solid rgba(64, 255, 94, 0.4)`，圆角建议为 `12px`。
+  - **卡片边框**: 统一使用 `1px solid rgba(64, 255, 94, 0.4)`（AIUI 0.18 规范要求常规边框为 `1px`），圆角建议为 `12px`。
 - **禁止项**: 严禁在 HUD 界面上默认使用 Emoji 或全彩位图。
 
 ### 1.2 端侧运行时环境
-- **JavaScript 引擎**: QuickJS 微运行时（极简 ES2020 子集）。
+- **JavaScript 引擎**: QuickJS 微运行时（AIUI `>=0.18.0` / `@yodaos-pkg/aix-cli@0.10.1`）。
 - **组件规范**: SFC `.ink` 单文件组件，整合 `<config>`、`<script>`、`<template>`、`<style>`。
-- **权限清单 (`AGENTS.md`)**:
-  - `camera`: 拍照与视觉采样 (`wx.media.createCameraContext()`)。
-  - `microphone`: 端侧麦克风录音与 ASR。
-  - `audio`: TTS 语音合成回放与端侧提示音。
-  - `network`: HTTP 请求 (`wx.request()`) 与 WebSocket。
-  - `accelerometer` / `gyroscope`: 头部姿态与 IMU 态势感知。
+- **权限清单 (`app.json` 最小权限大写枚举，详见 [`rokid-aiui-lifecycle`](../.agent/skills/rokid-aiui-lifecycle/SKILL.md))**:
+  - `CAMERA`: 拍照与视觉采样 (`wx.media.createCameraContext()`)。
+  - `RECORD_AUDIO`: 端侧麦克风录音与 `SpeechRecognition` ASR。
 
 ---
 
@@ -202,6 +201,8 @@ Rokid AIUI 平台架构中存在两套独立的压缩包格式，**职责完全�
 ---
 
 ## 6. 真机调试与扫码运行 (On-Device Verification)
+
+> 💡 **AIUI 0.18 ADB 直装命令**: 推荐使用 `@yodaos-pkg/aix-cli@0.10.1` 执行 `npx aix device -s $S set-dev`、`npx aix install -s $S dist/<name>.aix` 与 `npx aix launch-page -s $S dist/<name>.aix pages/index/index`（完整流程见 [`rokid-aiui-lifecycle`](../.agent/skills/rokid-aiui-lifecycle/SKILL.md)）。
 
 ### 6.1 扫码直达机制
 Rokid 伴侣 App 支持通过官方标准 DeepLink / 协议码加载调试包：

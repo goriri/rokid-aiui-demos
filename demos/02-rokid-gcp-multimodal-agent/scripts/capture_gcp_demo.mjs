@@ -147,8 +147,8 @@ async function run() {
   console.log('GIF animation generated:', gifPath);
 
   console.log('Copying media to assets and artifacts...');
-  const assetsScreenshots = path.join(projectRoot, 'assets', 'screenshots');
-  const assetsRecordings = path.join(projectRoot, 'assets', 'recordings');
+  const assetsScreenshots = path.join(projectRoot, 'assets', 'simulator');
+  const assetsRecordings = path.join(projectRoot, 'assets', 'simulator');
   fs.mkdirSync(assetsScreenshots, { recursive: true });
   fs.mkdirSync(assetsRecordings, { recursive: true });
 

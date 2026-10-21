@@ -11,8 +11,9 @@ This document provides the exact metadata, permission purpose strings, network/d
 | Studio Form Field (`构建与提审字段`) | Value (Exact Match with `app.json`) | Notes / Constraints |
 | :--- | :--- | :--- |
 | **Agent Name (`智能体名称` / `agentName`)** | `Vision Voice Copilot` | 20 chars (`<= 20` chars; no `test`/`beta`) |
+| **Studio Agent ID (`agentId`)** | `059b26f3ffcd47ab8280a2d176b0f88a` | Submitted 2026-10-21 (`displayStatus: "checking"`) |
 | **Category Suggestion (`分类建议`)** | `Efficiency & Tools` (`效率工具` / `AI 助手`) | Hands-free voice & vision assistant |
-| **Version (`版本号` / `nativeVersion`)** | `1.0.0` | SemVer |
+| **Version (`版本号` / `reviewNativeVersion`)** | `1.0.9` | Server auto-increments `nativeVersion` by `+0.0.1` on each `updateThirdAgent` save |
 | **Engine Requirement (`引擎版本` / `engine`)** | `>=0.18.0` | Packaged with `@yodaos-pkg/aix-cli@0.10.1` |
 | **Icon (`应用图标` / `agentLogo`)** | `demos/01-rokid-vision-voice-copilot/assets/icon.png` | 512×512 PNG bundled at `assets/icon.png` |
 | **Packaged `.aix` (`安装包路径`)** | `demos/01-rokid-vision-voice-copilot/dist/rokid-glasses-copilot.aix` | Optimized `.aix` archive |
@@ -60,8 +61,9 @@ This document provides the exact metadata, permission purpose strings, network/d
 | Studio Form Field (`构建与提审字段`) | Value (Exact Match with `app.json`) | Notes / Constraints |
 | :--- | :--- | :--- |
 | **Agent Name (`智能体名称` / `agentName`)** | `GCP Multimodal Agent` | 20 chars (`<= 20` chars; no `test`/`beta`) |
+| **Studio Agent ID (`agentId`)** | `68e11a45486e4b279704e1e3c43b4b4b` | Submitted 2026-10-21 (`displayStatus: "checking"`) |
 | **Category Suggestion (`分类建议`)** | `Efficiency & Tools` / `Translation` (`效率工具` / `翻译与视觉`) | Cloud vision Q&A & bilingual subtitle assistant |
-| **Version (`版本号` / `nativeVersion`)** | `1.0.0` | SemVer |
+| **Version (`版本号` / `reviewNativeVersion`)** | `1.0.8` | Server auto-increments `nativeVersion` by `+0.0.1` on each `updateThirdAgent` save |
 | **Engine Requirement (`引擎版本` / `engine`)** | `>=0.18.0` | Packaged with `@yodaos-pkg/aix-cli@0.10.1` |
 | **Icon (`应用图标` / `agentLogo`)** | `demos/02-rokid-gcp-multimodal-agent/assets/icon.png` | 512×512 PNG bundled at `assets/icon.png` |
 | **Packaged `.aix` (`安装包路径`)** | `demos/02-rokid-gcp-multimodal-agent/dist/rokid-gcp-multimodal-agent.aix` | Optimized `.aix` archive |
@@ -94,12 +96,12 @@ This document provides the exact metadata, permission purpose strings, network/d
 
 ### 4. Preview & Review Assets (`预览与提审素材`)
 
-- **Video (`演示视频`, 15–45s MP4, `<= 50 MB`)**: `demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4` *(being produced)*
-- **Cover Image (`封面图`)**: `demos/02-rokid-gcp-multimodal-agent/assets/review/cover.png` *(being produced)*
-- **Screenshots (`预览截图`, `>= 1` image)**:
-  - `demos/02-rokid-gcp-multimodal-agent/assets/review/shot1.png` (`GEMINI` vision mode) *(being produced)*
-  - `demos/02-rokid-gcp-multimodal-agent/assets/review/shot2.png` (`TRANSLATE` subtitle mode) *(being produced)*
-  - `demos/02-rokid-gcp-multimodal-agent/assets/review/shot3.png` (`CLOUD` telemetry mode) *(being produced)*
+- **Video (`演示视频`, 15–45s MP4, `<= 50 MB`)**: `demos/02-rokid-gcp-multimodal-agent/assets/review/demo.mp4`
+- **Cover Image (`封面图`, 1080×1080 PNG)**: `demos/02-rokid-gcp-multimodal-agent/assets/review/cover.png`
+- **Screenshots (`预览截图`, 480×352 PNG, `>= 1` image)**:
+  - `demos/02-rokid-gcp-multimodal-agent/assets/review/shot1.png` (`GEMINI` vision mode)
+  - `demos/02-rokid-gcp-multimodal-agent/assets/review/shot2.png` (`TRANSLATE` subtitle mode)
+  - `demos/02-rokid-gcp-multimodal-agent/assets/review/shot3.png` (`CLOUD` telemetry mode)
 
 ---
 
@@ -112,4 +114,15 @@ This document provides the exact metadata, permission purpose strings, network/d
 - [x] **TTS Non-Blocking Completion**: Both agents guard `speechSynthesis.speak` and `wx.speech.playTTS(text)` with a length-based timeout fallback (`clamp(1500 + 220ms * chars, 3000ms, 20000ms)`) so turns never hang when `utterance.onend` is unexposed on device.
 - [x] **WXSS & 480×352 Monochrome-Green HUD**: No unsupported WXSS properties (`white-space`, `text-overflow`, `-webkit-line-clamp`, `word-break`, `visibility`, `font-variant`, `position: sticky`), no `2px` normal borders, `font-weight <= 500`, and no English text overflow at 480×352.
 - [x] **No Shipped Placeholder Keys**: `gcp_config.js` ships zero API key placeholders (`YOUR_GCP_GEMINI_API_KEY` absent) and delegates GCP credentials to the Cloud Run relay proxy.
-- [ ] **Media Assets Attached in Studio (`构建与提审`)**: Upload the 15–45s MP4 demo video (`<= 50 MB`), `cover.png`, and `shot1..3.png` from `demos/<demo>/assets/review/` once media generation finishes.
+- [x] **Media Assets Attached in Studio (`构建与提审`)**: Uploaded the 15–45s MP4 demo video (`<= 50 MB`), `cover.png`, and `shot1..3.png` from `demos/<demo>/assets/review/` for both agents.
+
+---
+
+## Studio Submission Status (`线上提审状态`, 2026-10-21)
+
+| Agent | Studio `agentId` | `reviewNativeVersion` | Submitted Date | `displayStatus` |
+| :--- | :--- | :--- | :--- | :--- |
+| **Demo 1 (`Vision Voice Copilot`)** | `059b26f3ffcd47ab8280a2d176b0f88a` | `1.0.9` | `2026-10-21` | `checking` |
+| **Demo 2 (`GCP Multimodal Agent`)** | `68e11a45486e4b279704e1e3c43b4b4b` | `1.0.8` | `2026-10-21` | `checking` |
+
+> **Note on `nativeVersion` Auto-Increment**: The Rokid AIUI Studio backend (`metis/agent/updateThirdAgent`) automatically increments `nativeVersion` by `+0.0.1` on every save call. Before uploading a new release, bump `version` in `app.json` above the current Studio version and invoke `updateThirdAgent` only once per release before calling `cozePublish`.

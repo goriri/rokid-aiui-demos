@@ -5,6 +5,7 @@ node_modules
 .gitignore
 .aixignore
 package-lock.json
+assets/simulator
 assets/recordings
 assets/screenshots
 assets/review

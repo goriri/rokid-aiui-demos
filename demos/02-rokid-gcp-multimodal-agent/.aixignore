@@ -5,6 +5,7 @@ dist
 *.log
 package-lock.json
 scripts
+assets/simulator
 assets/recordings
 assets/screenshots
 assets/review
