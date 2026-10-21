@@ -2,7 +2,7 @@
 
 This document provides the exact metadata, permission purpose strings, network/data disclosures, package paths, and pre-submission verification checklist for our AIUI 0.18 agents in Rokid AIUI Studio (`构建与提审`).
 
-- **Current Demo 2 Source of Truth**: **GCP Live Translator (`48c2e202270c469886dde77ef1ecc936`, package `v1.0.11` / Studio `reviewNativeVersion: 1.0.3`)** matches `demos/02-rokid-gcp-multimodal-agent/app.json`.
+- **Current Demo 2 Source of Truth**: **GCP Live Translator (`48c2e202270c469886dde77ef1ecc936`, package `v1.0.12` / Studio `reviewNativeVersion: 1.0.4`)** matches `demos/02-rokid-gcp-multimodal-agent/app.json`.
 - **Historical Demo 2 Snapshot**: **GCP Multimodal Agent (`68e11a45486e4b279704e1e3c43b4b4b`, Studio `reviewNativeVersion: 1.0.8`)** corresponds to git commit `099e5fb` and remains in `checking` status.
 
 ---
@@ -13,7 +13,7 @@ This document provides the exact metadata, permission purpose strings, network/d
 | :--- | :--- | :--- | :---: | :---: | :---: |
 | **Vision Voice Copilot** | `demos/01-rokid-vision-voice-copilot` | `059b26f3ffcd47ab8280a2d176b0f88a` | `1.0.9` | `1.0.8` | `checking` |
 | **GCP Multimodal Agent** | `demos/02-rokid-gcp-multimodal-agent` (source = git `099e5fb`) | `68e11a45486e4b279704e1e3c43b4b4b` | `1.0.8` | `1.0.8` | `checking` |
-| **GCP Live Translator** *(Source of Truth)* | `demos/02-rokid-gcp-multimodal-agent` (HEAD) | `48c2e202270c469886dde77ef1ecc936` | `1.0.3` | `1.0.11` | `checking` |
+| **GCP Live Translator** *(Source of Truth)* | `demos/02-rokid-gcp-multimodal-agent` (HEAD) | `48c2e202270c469886dde77ef1ecc936` | `1.0.4` | `1.0.12` | `checking` |
 
 > **Note on `nativeVersion` Auto-Increment**: The Rokid AIUI Studio backend (`metis/agent/updateThirdAgent`) automatically increments `nativeVersion` by `+0.0.1` on every save call (new agents created via `saveAIUIAgent` / `--create` start at `1.0.0`). Call `updateThirdAgent` only once per release before calling `cozePublish`.
 
@@ -69,7 +69,7 @@ This document provides the exact metadata, permission purpose strings, network/d
 
 ---
 
-## Agent 2 (Current Source of Truth): GCP Live Translator (`02-rokid-gcp-multimodal-agent`, v1.0.11)
+## Agent 2 (Current Source of Truth): GCP Live Translator (`02-rokid-gcp-multimodal-agent`, v1.0.12)
 
 ### 1. Basic Metadata (`基础信息`)
 
@@ -78,7 +78,7 @@ This document provides the exact metadata, permission purpose strings, network/d
 | **Studio Agent ID (`agentId`)** | `48c2e202270c469886dde77ef1ecc936` | Created via `saveAIUIAgent` (`--create`), submitted `2026-10-21` (`displayStatus: "checking"`) |
 | **Agent Name (`智能体名称` / `agentName`)** | `GCP Live Translator` | 19 chars (`<= 20` chars; no `test`/`beta`) |
 | **Category (`分类` / `category`)** | `work` (`工作`) | Real-time speech-to-speech translation & vision |
-| **Version (`版本号` / `nativeVersion`)** | `1.0.11` (Studio `reviewNativeVersion`: `1.0.3`) | New Studio agents start at `1.0.0` and increment `+0.0.1` per save |
+| **Version (`版本号` / `nativeVersion`)** | `1.0.12` (Studio `reviewNativeVersion`: `1.0.4`) | New Studio agents start at `1.0.0` and increment `+0.0.1` per save |
 | **Engine Requirement (`引擎版本` / `engine`)** | `>=0.18.0` | Packaged with `@yodaos-pkg/aix-cli@0.10.1` |
 | **Icon (`应用图标` / `agentLogo`)** | `demos/02-rokid-gcp-multimodal-agent/assets/icon.png` | 512×512 PNG bundled at `assets/icon.png` |
 | **Packaged `.aix` (`安装包路径`)** | `demos/02-rokid-gcp-multimodal-agent/dist/rokid-gcp-multimodal-agent.aix` | Optimized `.aix` archive |
@@ -104,7 +104,7 @@ This document provides the exact metadata, permission purpose strings, network/d
   - **Live Speech-to-Speech Translation (`WSS /ws/live-translate?token=<Bearer>&target=en`)**:
     - When the user taps the temple in `LIVE TRANSLATE` mode, the glasses microphone (`navigator.mediaDevices.getUserMedia` with `microphoneMode: 'far-field'`, 16 kHz mono PCM extracted from `MediaRecorder` `audio/wav` chunks) streams nearby speech over an authenticated WebSocket to the Cloud Run relay, which forwards it to **Google Cloud Vertex AI Gemini Live (`gemini-3.5-live-translate-preview`, `locations/global`)**.
     - The server streams back **24 kHz PCM** translated English speech audio (played via `AudioContext.createBuffer(1, n, 24000)`) and live bilingual transcripts (`input_transcript` with detected language code + `output_transcript` in English).
-    - **Capture & Session Cap**: `far-field` beamforming focuses on the speaker in front (falls back to `omnidirectional`); the uplink always carries real mic audio and English echo is not re-translated (`echoTargetLanguage=false`). Tap starts/stops the session; sessions auto-stop at **4:50 (`290s`)** and tear down immediately on mode switch, `onHide`, `onUnload`, or Back key.
+    - **Capture, Hold-While-Speaking & Session Cap**: `far-field` beamforming focuses on the speaker in front (falls back to `omnidirectional`). Playback is held while the speaker is talking (VAD with an adaptive noise floor, 700ms hangover), then plays smoothly from a jitter buffer (0.8s pre-buffer, 6s safety cap); the uplink is muted only during the glasses' own playback (half-duplex), and `echoTargetLanguage=false`. Tap starts/stops the session; sessions auto-stop at **4:50 (`290s`)** and tear down immediately on mode switch, `onHide`, `onUnload`, or Back key.
     - **No Sample Fallback**: Sample-sentence and text-translation fallback paths are removed; if the network or upstream fails, the HUD shows `LIVE TRANSLATION UNAVAILABLE · <reason>`.
   - **Camera Vision Q&A (`POST /api/gemini`)**:
     - Captures a single camera photo (`takePhoto` timeout **12s**) **only when the user taps the temple** in `GEMINI 4 LIVE` mode and forwards the Base64 image + concise English prompt to **Vertex AI Global `gemini-4-argon`**.

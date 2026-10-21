@@ -27,7 +27,7 @@ rokid-aiui-demos/
 │   │   ├── assets/review/                 # On-device video (demo.mp4), preview.gif, cover.png & shot1..3.png
 │   │   └── package.json
 │   │
-│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Live Translator v1.0.11 (Gemini Live Speech Translation + Gemini 4 Vision + Cloud Console)
+│   └── 02-rokid-gcp-multimodal-agent/     # Demo 2: GCP Live Translator v1.0.12 (Gemini Live Speech Translation + Gemini 4 Vision + Cloud Console)
 │       ├── app.json                       # AIUI >=0.18.0 manifest (permissions: CAMERA, RECORD_AUDIO)
 │       ├── app.js
 │       ├── gcp_config.js                  # Cloud Run HTTP + WebSocket authenticated relay client config (zero client keys)
@@ -63,7 +63,7 @@ rokid-aiui-demos/
 | :--- | :--- | :--- | :---: | :---: |
 | **Vision Voice Copilot** | `demos/01-rokid-vision-voice-copilot` | `059b26f3ffcd47ab8280a2d176b0f88a` | `1.0.9` | `checking` |
 | **GCP Multimodal Agent** | `demos/02-rokid-gcp-multimodal-agent` (snapshot at `git 099e5fb`) | `68e11a45486e4b279704e1e3c43b4b4b` | `1.0.8` | `checking` |
-| **GCP Live Translator** | `demos/02-rokid-gcp-multimodal-agent` (current package `v1.0.11`) | `48c2e202270c469886dde77ef1ecc936` | `1.0.3` (= package `v1.0.11`) | `checking` |
+| **GCP Live Translator** | `demos/02-rokid-gcp-multimodal-agent` (current package `v1.0.12`) | `48c2e202270c469886dde77ef1ecc936` | `1.0.4` (= package `v1.0.12`) | `checking` |
 
 > 💡 **Note on `nativeVersion` Auto-Increment**: The Rokid AIUI Studio backend (`updateThirdAgent`) automatically increments `nativeVersion` by `+0.0.1` on every save call (new agents created via `--create` / `saveAIUIAgent` start at `1.0.0`). [`scripts/studio_upload.mjs`](scripts/studio_upload.mjs) supports `--dry-run` (default read-only preview), `--execute` (live OSS upload & single save), and `--create` (create a brand-new Studio agent and wire its review submission path).
 
@@ -98,7 +98,7 @@ An integrated hardware-software English HUD Copilot built on Rokid Glasses nativ
 
 ---
 
-### 🚀 Demo 2: GCP Live Translator (`02-rokid-gcp-multimodal-agent`, v1.0.11)
+### 🚀 Demo 2: GCP Live Translator (`02-rokid-gcp-multimodal-agent`, v1.0.12)
 
 Integrates **Google Cloud Vertex AI** real-time speech-to-speech translation (**`gemini-3.5-live-translate-preview` on `locations/global`**) and spatial vision reasoning (**Gemini 4 `gemini-4-argon` on `locations/global`**) into an all-English Rokid Glasses 480×352 HUD (declared permissions: `["CAMERA", "RECORD_AUDIO"]`).
 
@@ -111,7 +111,7 @@ Integrates **Google Cloud Vertex AI** real-time speech-to-speech translation (**
 #### Core Capabilities:
 1. **Real Speech-to-Speech Translation with Gemini Live (`LIVE TRANSLATE` Mode)**:
    - **End-to-End Audio Pipeline**: Glasses microphone (`navigator.mediaDevices.getUserMedia` with `microphoneMode: 'far-field'`, 16 kHz mono PCM16 extracted from `MediaRecorder` `audio/wav` chunks with `0.7` gain clamping) → authenticated WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`** (auto source language detection → English) → **24 kHz PCM** translated speech playback (`AudioContext.createBuffer(1, n, 24000)`) + live source (`input_transcript` with detected language badge) and target (`output_transcript`) subtitles on the HUD;
-   - **Capture & Echo**: `far-field` beamforming focuses on the speaker in front and suppresses side-room chatter and the temple speakers (measured ambient peaks dropped from 16k–23k to 0–7.7k). The uplink always carries real mic audio (no muting), and `echoTargetLanguage=false` means English echo is never re-translated;
+   - **Capture, Hold-While-Speaking & Jitter Buffer**: `far-field` beamforming focuses on the speaker in front and suppresses side-room chatter and the temple speakers (measured ambient peaks dropped from 16k–23k to 0–7.7k). Playback is held while the speaker is talking (VAD with an adaptive noise floor, 700ms hangover), then plays smoothly from a jitter buffer (0.8s pre-buffer, 6s safety cap); the uplink is muted only during the glasses' own playback (half-duplex), and `echoTargetLanguage=false`;
    - **Session Lifecycle & No Sample Fallback**: Temple tap starts/stops the live session with an automatic stop at **4:50 (`290s`)** under the 5:00 server cap. The sample-sentence / text-translate path is completely removed; errors surface an explicit `LIVE TRANSLATION UNAVAILABLE · <reason>` status.
 2. **Vertex AI Gemini 4 (`gemini-4-argon`) Spatial Vision Q&A (`GEMINI 4 LIVE` Mode)**:
    - A temple tap captures a photo from the front camera (`CameraContext.takePhoto({ quality: 'normal' })` with a **12s timeout**) and sends it via Cloud Run `/api/gemini` to **Vertex AI Global `gemini-4-argon`** for live scene analysis and spoken feedback;
@@ -161,7 +161,7 @@ sequenceDiagram
         User->>Agent: Temple tap starts far-field mic (16kHz PCM16)
         Agent->>Proxy: WSS /ws/live-translate?token=<Bearer>&target=en
         Proxy->>GCP: BidiGenerateContent setup (gemini-3.5-live-translate-preview)
-        loop Bidirectional stream (uplink always carries real mic audio)
+        loop Bidirectional stream (hold-while-speaking VAD + 0.8s jitter buffer, half-duplex uplink mute during playback)
             Agent->>Proxy: Binary 16kHz PCM16 audio chunks
             Proxy->>GCP: realtimeInput.audio (audio/pcm;rate=16000)
             GCP-->>Proxy: 24kHz English speech chunks + source/target transcripts
