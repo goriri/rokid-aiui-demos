@@ -4,8 +4,8 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Rokid%20Glasses%201%20%2F%202-40ff5e?style=flat-square&logo=android)](https://aiui.rokid.com/)
 [![SDK](https://img.shields.io/badge/AIUI%200.18-Ink%20SFC%20%2F%20aix--cli%200.10.1-000000?style=flat-square&logo=javascript)](https://github.com/yodaos-project/AIUI)
-[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20%2B%20Gemini%20Live%20(Global)-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
-[![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352%20(EN)-25D366?style=flat-square)](#-monochrome-green-scientific-interface-design-system)
+[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20%2B%20Gemini%20Live%20%28Global%29-4285F4?style=flat-square&logo=googlecloud)](https://cloud.google.com/vertex-ai)
+[![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352%20%28EN%29-25D366?style=flat-square)](#-monochrome-green-scientific-interface-design-system)
 
 This repository is a monorepo of Rokid AR Smart Glasses applications built on the official **Rokid AIUI 0.18** specification (`@yodaos-pkg/aix-cli@0.10.1`) and **Google Cloud Vertex AI**. Both agents follow the **Monochrome-Green Scientific Interface** design system with an all-English UI tailored for the **480 × 352** monochrome-green MicroLED waveguide viewport—delivering pure black-as-transparent optics, high contrast, real-time speech-to-speech translation, and low-glare multimodal AI interaction.
 
@@ -159,11 +159,11 @@ sequenceDiagram
         Proxy-->>Agent: 480x352 HUD response + TTS readback
     else Mode 2: LIVE TRANSLATE Speech-to-Speech (4:50 auto-stop)
         User->>Agent: Temple tap starts far-field mic (16kHz PCM16)
-        Agent->>Proxy: WSS /ws/live-translate?token=<Bearer>&target=en
+        Agent->>Proxy: WSS /ws/live-translate?token={Bearer}&target=en
         Proxy->>GCP: BidiGenerateContent setup (gemini-3.5-live-translate-preview)
         loop Bidirectional stream (hold-while-speaking VAD + 0.8s jitter buffer, half-duplex uplink mute during playback)
             Agent->>Proxy: Binary 16kHz PCM16 audio chunks
-            Proxy->>GCP: realtimeInput.audio (audio/pcm;rate=16000)
+            Proxy->>GCP: realtimeInput.audio (audio/pcm, rate=16000)
             GCP-->>Proxy: 24kHz English speech chunks + source/target transcripts
             Proxy-->>Agent: Binary 24kHz PCM16 + JSON input/output_transcript
         end

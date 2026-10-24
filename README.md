@@ -4,8 +4,8 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Rokid%20Glasses%201%20%2F%202-40ff5e?style=flat-square&logo=android)](https://aiui.rokid.com/)
 [![SDK](https://img.shields.io/badge/AIUI%200.18-Ink%20SFC%20%2F%20aix--cli%200.10.1-000000?style=flat-square&logo=javascript)](https://github.com/yodaos-project/AIUI)
-[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20%2B%20Gemini%20Live%20(Global)-4285F4?style=flat-square&logo=google-cloud)](https://cloud.google.com/vertex-ai)
-[![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352%20(EN)-25D366?style=flat-square)](#-单绿色科学界面设计系统规范)
+[![GCP](https://img.shields.io/badge/Cloud%20AI-Vertex%20AI%20Gemini%204%20%2B%20Gemini%20Live%20%28Global%29-4285F4?style=flat-square&logo=googlecloud)](https://cloud.google.com/vertex-ai)
+[![Design](https://img.shields.io/badge/HUD%20Design-Monochrome--Green%20480x352%20%28EN%29-25D366?style=flat-square)](#-单绿色科学界面设计系统规范)
 
 本项目为基于 **Rokid AIUI 0.18** 官方规范（`@yodaos-pkg/aix-cli@0.10.1`）与 **Google Cloud Vertex AI** 打造的 Rokid AR 智能眼镜应用集合（Monorepo）。全系采用纯英文 **单绿色科学界面设计系统 (Monochrome-Green Scientific Interface, English UI)**，在 **480 × 352** 单绿 MicroLED 光波导视口下，提供纯净透明、高对比度、低眩光的 AR 视觉、实时语音同传与多模态 AI 交互体验。
 
@@ -112,7 +112,7 @@ rokid-aiui-demos/
 1. **Gemini Live 实时语音到语音同传（`LIVE TRANSLATE` Mode）**：
    - **数据链路**：眼镜前向远场麦克风（`navigator.mediaDevices.getUserMedia` 配置 `microphoneMode: 'far-field'`，通过 `MediaRecorder` `audio/wav` 提取 16 kHz 单声道 PCM16 分片，`0.7` 增益限幅）→ 鉴权 WebSocket → Cloud Run `/ws/live-translate` → **Vertex AI Global `gemini-3.5-live-translate-preview`**（自动识别源语言 → 英语）→ 下行 **24 kHz PCM** 英文同传语音（通过 `AudioContext.createBuffer(1, n, 24000)` 无缝排期播放）+ HUD 实时双语字幕（`input_transcript` 附带检测到的源语言标签 + `output_transcript` 英文字幕）；
    - **拾音、说话暂缓播报与抖动缓冲**：`far-field` 波束成形聚焦正前方说话人，抑制两侧环境人声与镜腿扬声器（实测环境峰值从 16k–23k 降至 0–7.7k）；说话人正在发言时暂缓播报（基于自适应噪底的 VAD，700ms 尾音保持 hangover），停顿后从抖动缓冲区（0.8s 预缓冲，6s 安全上限）平滑连续播放；上行仅在眼镜自身播报期间静音（半双工 half-duplex），且 `echoTargetLanguage=false`；
-   - **会话控制與零示例兜底**：镜腿轻拍开始/停止同传；单次会话在 **4:50（290s）** 自动优雅停止（低于服务端 5:00 上限）；已彻底移除固定示例句与文本翻译降级路径，网络或鉴权异常时明确显示 `LIVE TRANSLATION UNAVAILABLE · <reason>`。
+   - **会话控制与零示例兜底**：镜腿轻拍开始/停止同传；单次会话在 **4:50（290s）** 自动优雅停止（低于服务端 5:00 上限）；已彻底移除固定示例句与文本翻译降级路径，网络或鉴权异常时明确显示 `LIVE TRANSLATION UNAVAILABLE · <reason>`。
 2. **Vertex AI Gemini 4 (`gemini-4-argon`) 实拍视觉问答（`GEMINI 4 LIVE` Mode）**：
    - 镜腿轻拍触发 `CameraContext.takePhoto({ quality: 'normal' })`（**12 秒超时**），将实拍画面经由 Cloud Run `/api/gemini` 发送至 **Vertex AI Global `gemini-4-argon`** 进行空间场景解析与语音播报；
    - **真实图像门禁**：若相机不可用或抓拍未返回图像，HUD 立即提示 `"Camera unavailable · tap to retry"`（状态标 `NO CAM`），**绝不**在无照片情况下请求大模型编造场景。
@@ -159,11 +159,11 @@ sequenceDiagram
         Proxy-->>Agent: 480x352 HUD 响应 + TTS 播报
     else 模式二：LIVE TRANSLATE 实时语音同传 (4:50 自动停止)
         User->>Agent: 轻拍启动前向远场麦 (far-field 16kHz PCM16)
-        Agent->>Proxy: WSS /ws/live-translate?token=<Bearer>&target=en
+        Agent->>Proxy: WSS /ws/live-translate?token={Bearer}&target=en
         Proxy->>GCP: BidiGenerateContent setup (gemini-3.5-live-translate-preview)
         loop 双向实时流 (VAD 暂缓播报 + 0.8s 抖动缓冲, 播报期半双工静音上行)
             Agent->>Proxy: Binary 16kHz PCM16 音频分片
-            Proxy->>GCP: realtimeInput.audio (audio/pcm;rate=16000)
+            Proxy->>GCP: realtimeInput.audio (audio/pcm, rate=16000)
             GCP-->>Proxy: 24kHz 英文语音分片 + 源/目标流式字幕
             Proxy-->>Agent: Binary 24kHz PCM16 + JSON input/output_transcript
         end
